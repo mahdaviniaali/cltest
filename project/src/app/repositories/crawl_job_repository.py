@@ -37,6 +37,29 @@ class CrawlJobRepository:
         )
         return self._session.scalar(stmt)
 
+    def get_running_site_map(self) -> Optional[CrawlJob]:
+        stmt = (
+            select(CrawlJob)
+            .where(
+                CrawlJob.job_type == "site_map",
+                CrawlJob.status.in_(
+                    [CrawlJobStatus.RUNNING.value, CrawlJobStatus.PAUSED.value]
+                ),
+            )
+            .order_by(CrawlJob.started_at.desc())
+            .limit(1)
+        )
+        return self._session.scalar(stmt)
+
+    def list_site_map_jobs(self, *, limit: int = 20) -> list[CrawlJob]:
+        stmt = (
+            select(CrawlJob)
+            .where(CrawlJob.job_type == "site_map")
+            .order_by(CrawlJob.created_at.desc())
+            .limit(limit)
+        )
+        return list(self._session.scalars(stmt).all())
+
     def create(
         self,
         *,
@@ -83,6 +106,52 @@ class CrawlJobRepository:
     def mark_failed(self, job: CrawlJob, error: str) -> CrawlJob:
         job.status = CrawlJobStatus.FAILED.value
         job.error = error
+        job.finished_at = datetime.now(timezone.utc)
+        self._session.flush()
+        return job
+
+    def mark_paused(self, job: CrawlJob) -> CrawlJob:
+        job.status = CrawlJobStatus.PAUSED.value
+        self._session.flush()
+        return job
+
+    def mark_resumed(self, job: CrawlJob) -> CrawlJob:
+        job.status = CrawlJobStatus.RUNNING.value
+        self._session.flush()
+        return job
+
+    def mark_cancelled(self, job: CrawlJob) -> CrawlJob:
+        job.status = CrawlJobStatus.CANCELLED.value
+        job.finished_at = datetime.now(timezone.utc)
+        self._session.flush()
+        return job
+
+    def update_site_map_progress(
+        self,
+        job: CrawlJob,
+        *,
+        pages_crawled: int,
+        pages_discovered: int,
+        pages_failed: int,
+    ) -> CrawlJob:
+        job.pages_crawled = pages_crawled
+        job.pages_discovered = pages_discovered
+        job.pages_failed = pages_failed
+        self._session.flush()
+        return job
+
+    def mark_site_map_completed(
+        self,
+        job: CrawlJob,
+        *,
+        pages_crawled: int,
+        pages_discovered: int,
+        pages_failed: int,
+    ) -> CrawlJob:
+        job.status = CrawlJobStatus.COMPLETED.value
+        job.pages_crawled = pages_crawled
+        job.pages_discovered = pages_discovered
+        job.pages_failed = pages_failed
         job.finished_at = datetime.now(timezone.utc)
         self._session.flush()
         return job

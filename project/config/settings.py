@@ -37,5 +37,11 @@ CRAWL_ON_DEMAND_CACHE_MIN_COUNT: int = int(os.getenv("CRAWL_ON_DEMAND_CACHE_MIN_
 CELERY_BROKER_URL: str = os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/0")
 CELERY_RESULT_BACKEND: str = os.getenv("CELERY_RESULT_BACKEND", CELERY_BROKER_URL)
 
+# Site map crawl
+SITE_MAP_SEED_URL: str = os.getenv("SITE_MAP_SEED_URL", "https://bama.ir/")
+SITE_MAP_MAX_PAGES: int = int(os.getenv("SITE_MAP_MAX_PAGES", "5000"))
+SITE_MAP_MAX_DEPTH: int = int(os.getenv("SITE_MAP_MAX_DEPTH", "6"))
+SITE_MAP_DELAY_SECONDS: float = float(os.getenv("SITE_MAP_DELAY_SECONDS", "1.0"))
+
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 DATA_DIR.mkdir(parents=True, exist_ok=True)

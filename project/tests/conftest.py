@@ -21,6 +21,7 @@ def db_session():
     import app.models.notification  # noqa: F401
     import app.models.outbox_event  # noqa: F401
     import app.models.search  # noqa: F401
+    import app.models.site_map  # noqa: F401
     import app.models.user  # noqa: F401
 
     Base.metadata.create_all(bind=engine)

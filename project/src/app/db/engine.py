@@ -27,6 +27,7 @@ def init_db() -> None:
         notification,
         outbox_event,
         search,
+        site_map,
         user,
     )
 

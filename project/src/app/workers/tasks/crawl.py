@@ -9,7 +9,7 @@ from app.models.crawl_job import CrawlJobType
 from app.repositories.crawl_job_repository import CrawlJobRepository
 from app.workers.celery_app import celery_app
 from config import settings
-from crawler.application.crawl_job_runner import run_incremental_job
+from crawler.application.crawl_job_runner import run_incremental_job, run_site_map_job
 
 logger = logging.getLogger(__name__)
 
@@ -49,5 +49,21 @@ def on_demand_crawl(self, job_id: str) -> dict:
     try:
         run_incremental_job(session, job_id)
         return {"job_id": job_id, "status": "completed"}
+    finally:
+        session.close()
+
+
+@celery_app.task(name="crawl.site_map", bind=True, max_retries=1)
+def site_map_crawl(
+    self,
+    job_id: str,
+    max_pages: int | None = None,
+    max_depth: int | None = None,
+) -> dict:
+    session = SessionLocal()
+    try:
+        run_site_map_job(session, job_id, max_pages=max_pages, max_depth=max_depth)
+        job = CrawlJobRepository(session).get(job_id)
+        return {"job_id": job_id, "status": job.status if job else "unknown"}
     finally:
         session.close()

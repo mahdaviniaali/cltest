@@ -14,11 +14,13 @@ class CrawlJobType(str, enum.Enum):
     SCHEDULED_INCREMENTAL = "scheduled_incremental"
     ON_DEMAND_SEARCH = "on_demand_search"
     ON_DEMAND_GLOBAL = "on_demand_global"
+    SITE_MAP = "site_map"
 
 
 class CrawlJobStatus(str, enum.Enum):
     PENDING = "pending"
     RUNNING = "running"
+    PAUSED = "paused"
     COMPLETED = "completed"
     FAILED = "failed"
     CANCELLED = "cancelled"
@@ -34,6 +36,8 @@ class CrawlJob(Base):
     search_id: Mapped[Optional[int]] = mapped_column(ForeignKey("searches.id", ondelete="SET NULL"))
     idempotency_key: Mapped[str] = mapped_column(String(128), unique=True, nullable=False)
     pages_crawled: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    pages_discovered: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    pages_failed: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     ads_found: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     ads_new: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     error: Mapped[Optional[str]] = mapped_column(Text)
