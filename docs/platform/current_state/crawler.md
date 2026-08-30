@@ -16,8 +16,9 @@ Hybrid incremental crawler (ADR 006) with hexagonal ports:
 | Layer | Path |
 |---|---|
 | Domain ports | `crawler/domain/ports.py`, `entities.py` |
-| Application | `crawler/application/incremental_crawl.py`, `on_demand_crawl.py`, `crawl_job_runner.py` |
-| Adapters | `crawler/adapters/bama/parsers.py`, `http_page_fetcher.py`, `db_ad_store.py` |
+| Application | `crawler/application/incremental_crawl.py`, `on_demand_crawl.py`, `site_map_crawl.py`, `crawl_job_runner.py` |
+| Domain | `crawler/domain/url_identity.py`, `crawl_policy.py`, `robots.py`, `url_patterns.py` |
+| Adapters | `crawler/adapters/bama/parsers.py`, `page_classifier.py`, `link_extractor.py`, `http_page_fetcher.py`, `db_ad_store.py` |
 
 ## Crawl modes
 
@@ -25,6 +26,15 @@ Hybrid incremental crawler (ADR 006) with hexagonal ports:
 |---|---|---|
 | Scheduled incremental | Beat every `CRAWL_INTERVAL_SECONDS` | `crawl.scheduled_incremental` |
 | On-demand | API / search create | `crawl.on_demand` |
+| Site map BFS | Inspector `/api/inspector/site-map/start` | `crawl.site_map` |
+
+## Site map (ADR 008)
+
+1. Seed from `config/bama_site.yaml` + sitemap.xml + robots Sitemap:
+2. BFS with `url_in_scope`, robots gate, visited URL dedup in DB
+3. Classify pages (type + section) via URL pattern + DOM hints
+4. Persist graph (`site_nodes`, `site_edges`) + events (`crawl_events`)
+5. Build section catalog (`site_sections`) on completion
 
 ## Incremental logic
 
@@ -43,6 +53,9 @@ Hybrid incremental crawler (ADR 006) with hexagonal ports:
 | `CRAWL_MAX_PAGES` | `10` |
 | `CRAWL_DELAY_SECONDS` | `1.0` |
 | `CRAWL_STALENESS_SECONDS` | `600` |
+| `SITE_MAP_MAX_PAGES` | `5000` |
+| `SITE_MAP_MAX_DEPTH` | `6` |
+| `SITE_MAP_DELAY_SECONDS` | `1.0` |
 
 ## Workers
 

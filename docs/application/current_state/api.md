@@ -35,6 +35,17 @@ Default: `http://127.0.0.1:8000`
 | POST | `/api/crawl/trigger` | JWT | legacy admin trigger (prefer refresh) |
 | GET | `/api/crawl/jobs/{id}` | JWT | internal job detail |
 | GET | `/api/crawl/status` | JWT | internal crawl status |
+| POST | `/api/inspector/site-map/start` | JWT | start site map BFS |
+| POST | `/api/inspector/jobs/{id}/pause` | JWT | pause site map |
+| POST | `/api/inspector/jobs/{id}/resume` | JWT | resume site map |
+| POST | `/api/inspector/jobs/{id}/cancel` | JWT | cancel site map |
+| GET | `/api/inspector/jobs` | JWT | list site map jobs |
+| GET | `/api/inspector/jobs/{id}` | JWT | job status + counters |
+| GET | `/api/inspector/jobs/{id}/events` | JWT | crawl events (poll `since_id`) |
+| GET | `/api/inspector/site/tree` | JWT | URL path tree |
+| GET | `/api/inspector/site/graph` | JWT | nodes + edges |
+| GET | `/api/inspector/site/sections` | JWT | auto-detected sections |
+| GET | `/api/inspector/pages/{page_key}` | JWT | page detail |
 
 ## Cache-first UX contract
 
@@ -49,3 +60,4 @@ Default: `http://127.0.0.1:8000`
 |---|---|
 | `/` | Dashboard — filter CRUD + live preview in form |
 | `/searches/:id` | Saved filter results + refresh |
+| `/admin/inspector` | Site map control, tree, graph, live events |

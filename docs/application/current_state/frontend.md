@@ -29,6 +29,8 @@ not_authoritative_for:
 | `/login` | `LoginPage` | ورود |
 | `/register` | `RegisterPage` | ثبت‌نام |
 | `/` | `DashboardPage` | لیست و مدیریت فیلترها |
+| `/searches/:id` | `SearchResultsPage` | نتایج فیلتر ذخیره‌شده |
+| `/admin/inspector` | `InspectorPage` | Site map، درخت، گراف، رویدادهای زنده |
 
 ## User Features (implemented)
 
