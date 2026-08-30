@@ -23,6 +23,10 @@ not_authoritative_for:
 | `python-dotenv` | 1.0.0 |
 | `scrapy` | 2.11.0 |
 | `crawl4ai` | 0.4.0 |
+| `sqlalchemy` | 2.0.0 |
+| `celery` | 5.4.0 |
+| `redis` | 5.0.0 |
+| `pytest` | 8.0.0 |
 
 ## Crawl Infrastructure Tools
 
@@ -44,6 +48,9 @@ Scrapy و Crawl4AI **نصب شده‌اند** — استفاده فقط از ط�
 | `python-dotenv` | `config/settings.py` |
 | `scrapy` | *(planned)* Scrapy crawl adapter — infrastructure only |
 | `crawl4ai` | *(planned)* Crawl4AI fetch/extract adapter — infrastructure only |
+| `celery` | `app.workers.celery_app` — task broker |
+| `redis` | Celery broker/backend |
+| `sqlalchemy` | ORM — ads, jobs, outbox, matches |
 
 ## Python Version
 

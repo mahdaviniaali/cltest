@@ -5,6 +5,8 @@ from app.api.deps import get_current_user, get_db
 from app.models.user import User
 from app.repositories.search_repository import SearchRepository
 from app.schemas.search import SearchCreate, SearchOut, SearchUpdate
+from app.workers.tasks.crawl import on_demand_crawl
+from crawler.application.on_demand_crawl import OnDemandCrawlService
 
 router = APIRouter(prefix="/searches", tags=["searches"])
 
@@ -26,6 +28,15 @@ def create_search(
 ) -> SearchOut:
     repo = SearchRepository(db)
     search = repo.create(current_user.id, payload.model_dump())
+
+    on_demand = OnDemandCrawlService(db)
+    try:
+        result = on_demand.evaluate_search(search.id, current_user.id)
+        if not result.used_cache and result.job_id:
+            on_demand_crawl.delay(result.job_id)
+    except ValueError:
+        pass
+
     return SearchOut.model_validate(search)
 
 

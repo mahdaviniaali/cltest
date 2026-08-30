@@ -31,6 +31,15 @@ not_authoritative_for:
 | `advertisements` | `app.models.advertisement.Advertisement` | UNIQUE `bama_id` |
 | `users` | `app.models.user.User` | UNIQUE `email` |
 | `searches` | `app.models.search.Search` | FK `user_id` → users |
+| `crawler_state` | `app.models.crawler_state.CrawlerState` | PK `source_key` |
+| `crawl_jobs` | `app.models.crawl_job.CrawlJob` | UNIQUE `idempotency_key` |
+| `outbox_events` | `app.models.outbox_event.OutboxEvent` | — |
+| `matches` | `app.models.match.Match` | UNIQUE `(ad_id, search_id)` |
+| `notifications` | `app.models.notification.Notification` | UNIQUE `match_id` |
+
+## Transactional outbox
+
+New ads: `DbAdStore.save_new` inserts ad + `outbox_events` (`ad.created`) in one commit. Relay task dispatches to match queue.
 
 ## Repositories
 
@@ -39,6 +48,13 @@ not_authoritative_for:
 | `AdvertisementRepository` | `app.repositories.advertisement_repository` |
 | `UserRepository` | `app.repositories.user_repository` |
 | `SearchRepository` | `app.repositories.search_repository` |
+| `CrawlJobRepository` | `app.repositories.crawl_job_repository` |
+| `CrawlerStateRepository` | `app.repositories.crawler_state_repository` |
+| `OutboxRepository` | `app.repositories.outbox_repository` |
+
+## Unit of Work
+
+`app.db.unit_of_work.UnitOfWork` — shared session commit/rollback for multi-step writes.
 
 ### SearchRepository methods
 
