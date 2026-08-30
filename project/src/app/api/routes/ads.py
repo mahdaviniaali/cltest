@@ -4,11 +4,37 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_current_user, get_db
 from app.models.user import User
 from app.repositories.advertisement_repository import AdvertisementRepository
-from app.repositories.crawl_job_repository import CrawlJobRepository
-from app.repositories.crawler_state_repository import CrawlerStateRepository
-from app.schemas.crawl import AdOut
+from app.schemas.crawl import AdFilterPreview, AdOut, DataPreviewOut
 
 router = APIRouter(prefix="/ads", tags=["ads"])
+
+
+@router.post("/preview", response_model=DataPreviewOut)
+def preview_ads(
+    payload: AdFilterPreview,
+    db: Session = Depends(get_db),
+    _current_user: User = Depends(get_current_user),
+) -> DataPreviewOut:
+    from app.services.data_preview import DataPreviewService, FilterCriteria
+
+    service = DataPreviewService(db)
+    result = service.preview(
+        FilterCriteria(
+            brand=payload.brand,
+            model=payload.model,
+            min_year=payload.min_year,
+            max_price=payload.max_price,
+            max_mileage=payload.max_mileage,
+            location=payload.location,
+        ),
+        limit=payload.limit,
+    )
+    return DataPreviewOut(
+        ads=[AdOut.model_validate(ad) for ad in result.ads],
+        total_count=result.total_count,
+        last_updated_at=result.last_updated_at,
+        is_refreshing=result.is_refreshing,
+    )
 
 
 @router.get("", response_model=list[AdOut])

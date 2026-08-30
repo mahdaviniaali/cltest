@@ -28,6 +28,15 @@ class CrawlJobRepository:
         )
         return self._session.scalar(stmt)
 
+    def get_any_running(self) -> Optional[CrawlJob]:
+        stmt = (
+            select(CrawlJob)
+            .where(CrawlJob.status == CrawlJobStatus.RUNNING.value)
+            .order_by(CrawlJob.started_at.desc())
+            .limit(1)
+        )
+        return self._session.scalar(stmt)
+
     def create(
         self,
         *,

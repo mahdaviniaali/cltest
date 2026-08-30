@@ -4,9 +4,9 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_current_user, get_db
 from app.models.user import User
 from app.repositories.search_repository import SearchRepository
+from app.schemas.crawl import AdOut, DataPreviewOut
 from app.schemas.search import SearchCreate, SearchOut, SearchUpdate
-from app.workers.tasks.crawl import on_demand_crawl
-from crawler.application.on_demand_crawl import OnDemandCrawlService
+from app.services.data_preview import DataPreviewService, FilterCriteria
 
 router = APIRouter(prefix="/searches", tags=["searches"])
 
@@ -28,16 +28,38 @@ def create_search(
 ) -> SearchOut:
     repo = SearchRepository(db)
     search = repo.create(current_user.id, payload.model_dump())
-
-    on_demand = OnDemandCrawlService(db)
-    try:
-        result = on_demand.evaluate_search(search.id, current_user.id)
-        if not result.used_cache and result.job_id:
-            on_demand_crawl.delay(result.job_id)
-    except ValueError:
-        pass
-
     return SearchOut.model_validate(search)
+
+
+@router.get("/{search_id}/results", response_model=DataPreviewOut)
+def get_search_results(
+    search_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> DataPreviewOut:
+    repo = SearchRepository(db)
+    search = repo.get_for_user(current_user.id, search_id)
+    if search is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Search not found")
+
+    service = DataPreviewService(db)
+    result = service.preview(
+        FilterCriteria(
+            brand=search.brand,
+            model=search.model,
+            min_year=search.min_year,
+            max_price=search.max_price,
+            max_mileage=search.max_mileage,
+            location=search.location,
+        ),
+        limit=50,
+    )
+    return DataPreviewOut(
+        ads=[AdOut.model_validate(ad) for ad in result.ads],
+        total_count=result.total_count,
+        last_updated_at=result.last_updated_at,
+        is_refreshing=result.is_refreshing,
+    )
 
 
 @router.get("/{search_id}", response_model=SearchOut)

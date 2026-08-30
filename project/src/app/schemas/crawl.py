@@ -1,7 +1,7 @@
 from datetime import datetime
-from typing import Any, Optional
+from typing import Optional
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class AdOut(BaseModel):
@@ -18,6 +18,33 @@ class AdOut(BaseModel):
     mileage: Optional[int] = None
     location: Optional[str] = None
     crawled_at: datetime
+
+
+class AdFilterPreview(BaseModel):
+    brand: Optional[str] = Field(default=None, max_length=128)
+    model: Optional[str] = Field(default=None, max_length=128)
+    min_year: Optional[int] = Field(default=None, ge=1300, le=1500)
+    max_price: Optional[int] = Field(default=None, ge=0)
+    max_mileage: Optional[int] = Field(default=None, ge=0)
+    location: Optional[str] = Field(default=None, max_length=256)
+    limit: int = Field(default=20, ge=1, le=100)
+
+
+class DataPreviewOut(BaseModel):
+    ads: list[AdOut]
+    total_count: int
+    last_updated_at: Optional[datetime] = None
+    is_refreshing: bool
+
+
+class DataStatusOut(BaseModel):
+    last_updated_at: Optional[datetime] = None
+    is_refreshing: bool
+
+
+class RefreshOut(BaseModel):
+    is_refreshing: bool = True
+    message: str = "داده‌ها در حال بروزرسانی هستند"
 
 
 class CrawlJobOut(BaseModel):
@@ -47,8 +74,3 @@ class CrawlStatusOut(BaseModel):
 class CrawlTriggerOut(BaseModel):
     job_id: str
     message: str = "Crawl job enqueued"
-
-
-class SearchCreateResponse(BaseModel):
-    search: Any
-    crawl: Optional[dict[str, Any]] = None
