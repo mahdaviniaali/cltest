@@ -19,6 +19,8 @@ not_authoritative_for:
 | [003](003-requests-http-client.md) | requests as HTTP client | Accepted | 2026-08-30 |
 | [004](004-scrapy-crawl4ai-crawl-tools.md) | Scrapy & Crawl4AI as crawl infrastructure tools | Accepted | 2026-08-30 |
 | [005](005-relational-db-manual-schema.md) | Relational DB + manual schema design | Accepted | 2026-08-30 |
+| [006](006-hybrid-incremental-crawl.md) | Hybrid incremental crawl + Bama policy | Accepted | 2026-08-30 |
+| [007](007-transactional-outbox-celery.md) | Transactional outbox + Celery queues | Accepted | 2026-08-30 |
 
 ## Rules
 

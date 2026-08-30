@@ -19,6 +19,8 @@ not_authoritative_for:
 | P-003 | requests HTTP | Accepted | [platform/decisions/003](../platform/decisions/003-requests-http-client.md) |
 | P-004 | Layered documentation | Accepted | [learning report](../knowledge/learning_reports/001-layered-documentation-adoption.md) |
 | P-005 | Relational DB + manual schema | Accepted | [platform/decisions/005](../platform/decisions/005-relational-db-manual-schema.md) |
+| P-006 | Hybrid incremental crawl | Accepted | [platform/decisions/006](../platform/decisions/006-hybrid-incremental-crawl.md) |
+| P-007 | Transactional outbox + Celery | Accepted | [platform/decisions/007](../platform/decisions/007-transactional-outbox-celery.md) |
 
 ## Application Decisions
 
