@@ -29,6 +29,8 @@ python main.py
 
 | سند | نقش |
 |---|---|
+| [`docs/base/تعریف_پروژه.md`](docs/base/تعریف_پروژه.md) | تعریف و scope پروژه |
+| [`docs/base/رویکرد_پروژه.md`](docs/base/رویکرد_پروژه.md) | رویکرد معماری و فازها |
 | [`docs/AUTHORITY.md`](docs/AUTHORITY.md) | مدل authority + owner table |
 | [`docs/METHODOLOGY.md`](docs/METHODOLOGY.md) | فلسفه مستندسازی |
 | [`docs/development/getting_started.md`](docs/development/getting_started.md) | onboarding |

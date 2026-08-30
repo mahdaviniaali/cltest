@@ -50,6 +50,8 @@ not_authoritative_for:
 | قوانین مستندنویسی | `development/documentation_rules.md` | — |
 | قوانین AI (platform) | `platform/ai_rules.md` | — |
 | قوانین AI (application) | `application/ai_rules.md` | — |
+| تعریف پروژه (scope, output) | `base/تعریف_پروژه.md` | — |
+| رویکرد پروژه (phases, gates) | `base/رویکرد_پروژه.md` | — |
 | blueprint محصول | `application/spec/product_blueprint.md` | — |
 | سوالات باز | `application/spec/open_questions.md` | — |
 | ثبت تصمیمات | `application/spec/decision_register.md` | — |
@@ -57,13 +59,15 @@ not_authoritative_for:
 ## Read Order (A0)
 
 ```
-1. docs/AUTHORITY.md          ← این فایل
-2. docs/README.md             ← router
-3. domain/current_state.md    ← index
-4. domain/current_state/*.md  ← facts
-5. domain/architecture/       ← structure (L2)
-6. domain/decisions/          ← why only (L3)
-7. application/spec/          ← orientation (L5)
+1. docs/base/تعریف_پروژه.md   ← پروژه چیست (L5 base)
+2. docs/base/رویکرد_پروژه.md  ← چطور می‌سازیم (L5 base)
+3. docs/AUTHORITY.md          ← این فایل
+4. docs/README.md             ← router
+5. domain/current_state.md    ← index
+6. domain/current_state/*.md  ← facts
+7. domain/architecture/       ← structure (L2)
+8. domain/decisions/          ← why only (L3)
+9. application/spec/          ← orientation (L5)
 ```
 
 ## Heavy vs Light Sync

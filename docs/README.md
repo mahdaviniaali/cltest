@@ -5,11 +5,21 @@
 ## Read Order (A0)
 
 ```
-1. AUTHORITY.md                    — مدل authority + owner table
-2. METHODOLOGY.md                  — فلسفه و cheat sheet
-3. development/getting_started.md  — onboarding
-4. domain انتخاب کن ↓
+1. base/تعریف_پروژه.md             — پروژه چیست
+2. base/رویکرد_پروژه.md            — چطور می‌سازیم
+3. AUTHORITY.md                    — مدل authority + owner table
+4. METHODOLOGY.md                  — فلسفه و cheat sheet
+5. development/getting_started.md  — onboarding
+6. domain انتخاب کن ↓
 ```
+
+## Base Documents
+
+| سند | نقش |
+|---|---|
+| [`base/تعریف_پروژه.md`](base/تعریف_پروژه.md) | scope، مرز Platform/Application، قرارداد خروجی |
+| [`base/رویکرد_پروژه.md`](base/رویکرد_پروژه.md) | فازها، gateها، workflow معماری قبل از کد |
+| [`base/README.md`](base/README.md) | index اسناد پایه |
 
 ## Domains
 
