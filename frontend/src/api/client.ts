@@ -1,4 +1,13 @@
-import type { AuthResponse, Search, SearchInput, User } from "../types";
+import type {
+  AdFilterInput,
+  AuthResponse,
+  DataPreview,
+  DataStatus,
+  RefreshResponse,
+  Search,
+  SearchInput,
+  User,
+} from "../types";
 
 const TOKEN_KEY = "bama_token";
 const USER_KEY = "bama_user";
@@ -92,6 +101,21 @@ export const api = {
   },
   toggleSearch(id: number) {
     return request<Search>(`/api/searches/${id}/toggle`, { method: "PATCH" });
+  },
+  previewAds(filter: AdFilterInput) {
+    return request<DataPreview>("/api/ads/preview", {
+      method: "POST",
+      body: JSON.stringify(filter),
+    });
+  },
+  getSearchResults(searchId: number) {
+    return request<DataPreview>(`/api/searches/${searchId}/results`);
+  },
+  refreshData() {
+    return request<RefreshResponse>("/api/crawl/refresh", { method: "POST" });
+  },
+  getDataStatus() {
+    return request<DataStatus>("/api/data/status");
   },
 };
 

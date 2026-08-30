@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import SearchForm, { SearchSummary } from "../components/SearchForm";
 import { useAuth } from "../context/AuthContext";
 import type { Search, SearchInput } from "../types";
 
 export default function DashboardPage() {
+  const navigate = useNavigate();
   const { user, logout } = useAuth();
   const [searches, setSearches] = useState<Search[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,9 +32,10 @@ export default function DashboardPage() {
   }, [loadSearches]);
 
   async function handleCreate(data: SearchInput) {
-    await api.createSearch(data);
+    const created = await api.createSearch(data);
     setShowForm(false);
     await loadSearches();
+    navigate(`/searches/${created.id}`);
   }
 
   async function handleUpdate(data: SearchInput) {
@@ -98,6 +101,9 @@ export default function DashboardPage() {
                   <SearchSummary search={search} />
                 </div>
                 <div className="actions">
+                  <Link to={`/searches/${search.id}`} className="link-button">
+                    نتایج
+                  </Link>
                   <button className="secondary" onClick={() => handleToggle(search.id)}>
                     {search.enabled ? "غیرفعال" : "فعال"}
                   </button>
