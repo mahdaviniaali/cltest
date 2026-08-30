@@ -18,20 +18,13 @@ SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
 
 
 def init_db() -> None:
-    from app.db.base import Base
-    from app.models import (  # noqa: F401
-        advertisement,
-        crawl_job,
-        crawler_state,
-        match,
-        notification,
-        outbox_event,
-        search,
-        site_map,
-        user,
-    )
+    upgrade_schema(engine)
 
-    Base.metadata.create_all(bind=engine)
+
+def upgrade_schema(engine_instance=None) -> None:
+    from app.db.migrate import upgrade_schema as _upgrade
+
+    _upgrade(engine_instance or engine)
 
 
 def get_session() -> Generator[Session, None, None]:

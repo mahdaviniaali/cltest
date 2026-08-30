@@ -1,10 +1,20 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes import ads, auth, crawl, inspector, searches
+from app.db.engine import upgrade_schema
 from config import settings
 
-app = FastAPI(title="Bama Crawler API", version="0.1.0")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    upgrade_schema()
+    yield
+
+
+app = FastAPI(title="Bama Crawler API", version="0.1.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,

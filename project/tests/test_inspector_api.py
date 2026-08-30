@@ -58,13 +58,13 @@ def client(db_session):
     app.dependency_overrides.clear()
 
 
-@patch("app.api.routes.inspector.site_map_crawl")
-def test_start_site_map_enqueues_job(mock_task, client, db_session):
+@patch("app.api.routes.inspector.dispatch_site_map_job")
+def test_start_site_map_enqueues_job(mock_dispatch, client, db_session):
     response = client.post("/api/inspector/site-map/start", json={"max_pages": 10, "max_depth": 2})
     assert response.status_code == 200
     data = response.json()
     assert data["job_type"] == CrawlJobType.SITE_MAP.value
-    mock_task.delay.assert_called_once()
+    mock_dispatch.assert_called_once()
 
 
 def test_start_site_map_idempotent_when_running(client, db_session):
@@ -81,11 +81,11 @@ def test_start_site_map_idempotent_when_running(client, db_session):
     )
     db_session.commit()
 
-    with patch("app.api.routes.inspector.site_map_crawl") as mock_task:
+    with patch("app.api.routes.inspector.dispatch_site_map_job") as mock_dispatch:
         response = client.post("/api/inspector/site-map/start", json={})
         assert response.status_code == 200
         assert response.json()["job_id"] == job_id
-        mock_task.delay.assert_not_called()
+        mock_dispatch.assert_not_called()
 
 
 def test_site_tree_and_graph(client, db_session):

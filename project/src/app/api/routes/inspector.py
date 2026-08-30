@@ -22,7 +22,7 @@ from app.schemas.inspector import (
     SiteTreeNode,
 )
 from app.services.inspector import InspectorService
-from app.workers.tasks.crawl import site_map_crawl
+from app.services.job_dispatch import dispatch_site_map_job
 
 router = APIRouter(prefix="/inspector", tags=["inspector"])
 
@@ -67,7 +67,7 @@ def start_site_map(
         max_depth=body.max_depth,
     )
     if not already_running:
-        site_map_crawl.delay(job.id, max_pages=body.max_pages, max_depth=body.max_depth)
+        dispatch_site_map_job(job.id, max_pages=body.max_pages, max_depth=body.max_depth)
     return _job_response(job)
 
 
@@ -116,7 +116,7 @@ def resume_job(
     if job is None:
         raise HTTPException(status_code=404, detail="Job not found")
     db.commit()
-    site_map_crawl.delay(job.id)
+    dispatch_site_map_job(job.id)
     return _job_response(job)
 
 
