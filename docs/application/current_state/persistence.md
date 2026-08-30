@@ -5,13 +5,13 @@
 domain: application
 authority: L1
 owner: persistence
-verify: project/src/app/models/advertisement.py
+verify: project/src/app/models/
 questions:
-  - How are advertisements stored?
-  - What is the dedup key?
+  - How are advertisements, users, and searches stored?
+  - What is the dedup key for ads?
 not_authoritative_for:
   - why relational DB (→ platform/decisions/005)
-  - draft schema rationale (→ spec/schema/advertisements.md)
+  - draft schema rationale (→ spec/schema/)
 ---
 ```
 
@@ -24,46 +24,46 @@ not_authoritative_for:
 | Config | `settings.DATABASE_URL` |
 | Init script | `python scripts/init_db.py` |
 
-## Table: `advertisements`
+## Tables
 
-| Column | Type | Required | Note |
-|---|---|---|---|
-| `id` | BIGINT PK | yes | internal |
-| `bama_id` | VARCHAR(32) | yes | **UNIQUE** — dedup key |
-| `url` | VARCHAR(512) | yes | |
-| `title` | VARCHAR(512) | yes | |
-| `brand`, `model` | VARCHAR(128) | no | matching |
-| `year` | INTEGER | no | |
-| `price` | BIGINT | no | tomans |
-| `mileage` | INTEGER | no | km |
-| `location` | VARCHAR(256) | no | |
-| `engine_capacity_cc` | INTEGER | no | |
-| `transmission`, `fuel_type`, `body_type` | VARCHAR | no | |
-| `body_color`, `interior_color`, `body_condition` | VARCHAR | no | |
-| `seller_name`, `seller_phone`, `seller_address` | VARCHAR | no | |
-| `description` | TEXT | no | |
-| `technical_specs` | JSON | no | |
-| `published_at` | TIMESTAMPTZ | no | |
-| `crawled_at` | TIMESTAMPTZ | yes | default now |
-| `raw_data` | JSON | no | |
-| `is_deleted`, `is_sold` | BOOLEAN | yes | default false |
+| Table | Model | Dedup / Key |
+|---|---|---|
+| `advertisements` | `app.models.advertisement.Advertisement` | UNIQUE `bama_id` |
+| `users` | `app.models.user.User` | UNIQUE `email` |
+| `searches` | `app.models.search.Search` | FK `user_id` → users |
 
-## Repository
+## Repositories
 
 | Class | Module |
 |---|---|
 | `AdvertisementRepository` | `app.repositories.advertisement_repository` |
+| `UserRepository` | `app.repositories.user_repository` |
+| `SearchRepository` | `app.repositories.search_repository` |
+
+### SearchRepository methods
 
 | Method | Behavior |
 |---|---|
-| `get_by_bama_id(bama_id)` | fetch by dedup key |
-| `exists(bama_id)` | bool |
-| `save_new(data)` | insert if new → `(Ad, created)` |
-| `update_status(bama_id, …)` | patch `is_deleted` / `is_sold` |
-| `list_active(limit)` | not deleted/sold, newest first |
+| `list_for_user(user_id)` | all searches for user |
+| `get_for_user(user_id, search_id)` | single owned search |
+| `create(user_id, data)` | new filter |
+| `update(search, data)` | patch fields |
+| `delete(search)` | remove |
+| `toggle_enabled(search)` | flip enabled flag |
+
+## API Entry
+
+| Property | Value |
+|---|---|
+| Run | `python run_api.py` |
+| App module | `app.api.main:app` |
+| Port | `8000` |
+| Auth | JWT bearer |
 
 ## Env
 
 | Variable | Default |
 |---|---|
 | `DATABASE_URL` | `sqlite:///data/app.db` |
+| `JWT_SECRET_KEY` | dev placeholder |
+| `CORS_ORIGINS` | `http://localhost:5173` |

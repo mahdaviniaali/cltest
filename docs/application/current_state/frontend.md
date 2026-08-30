@@ -7,42 +7,51 @@ authority: L1
 owner: frontend
 verify: frontend/
 questions:
-  - What is the current state of the frontend?
+  - What framework and pages exist?
 not_authoritative_for:
-  - planned UI (→ knowledge/)
+  - API contract details (→ persistence.md, spec/schema/)
 ---
 ```
 
-## Status
+## Stack
 
-| Item | State |
+| Item | Value |
 |---|---|
-| Framework | ❌ not selected |
-| Build tool | ❌ not configured |
-| API integration | ❌ not implemented |
+| Framework | React 18 + TypeScript |
+| Build | Vite 5 |
+| Routing | react-router-dom 6 |
+| API proxy | `/api` → `http://localhost:8000` |
 
-## Existing Files
+## Pages
 
-| File | Content |
+| Route | Component | Purpose |
+|---|---|---|
+| `/login` | `LoginPage` | ورود |
+| `/register` | `RegisterPage` | ثبت‌نام |
+| `/` | `DashboardPage` | لیست و مدیریت فیلترها |
+
+## User Features (implemented)
+
+| UC | Feature |
 |---|---|
-| `frontend/package.json` | scaffold, placeholder scripts |
-| `frontend/README.md` | placeholder readme |
+| UC-U1 | Register, login, logout, JWT session |
+| UC-U2 | Create search filter |
+| UC-U3 | List filters |
+| UC-U4 | Edit filter |
+| UC-U5 | Delete filter |
+| UC-U6 | Toggle enable/disable |
+| UC-U7 | Multiple filters per user |
 
-## package.json Scripts
+## Run
 
-| Script | Behavior |
-|---|---|
-| `dev` | echo placeholder message |
-| `build` | echo placeholder message |
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
-## package.json Metadata
+Requires API: `cd project && python run_api.py`
 
-| Field | Value |
-|---|---|
-| name | `crawler-frontend` |
-| version | `0.1.0` |
-| private | `true` |
+## Build output
 
-## Backend Connection
-
-هیچ endpoint HTTP یا WebSocket بین frontend و crawler **وجود ندارد**.
+`frontend/dist/`

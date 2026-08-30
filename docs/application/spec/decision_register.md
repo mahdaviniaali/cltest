@@ -24,7 +24,7 @@ not_authoritative_for:
 
 | ID | Title | Status | ADR |
 |---|---|---|---|
-| — | *(none yet)* | — | — |
+| A-001 | FastAPI + JWT user API | Accepted | [application/decisions/001](../application/decisions/001-fastapi-jwt-user-api.md) |
 
 ## Register Rules
 

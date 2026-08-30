@@ -14,12 +14,11 @@ not_authoritative_for:
 
 | ID | Title | Status | Date |
 |---|---|---|---|
-| — | *(none yet)* | — | — |
+| [001](001-fastapi-jwt-user-api.md) | FastAPI + JWT auth for user API | Accepted | 2026-08-30 |
 
 ## Pending Candidates
 
-- Frontend framework selection
-- API layer design (REST vs CLI-only)
-- Target site selection for production crawler
+- Frontend framework selection → **React + Vite** (implemented, promote later)
+- Target site selection → closed (Bama.ir)
 
 Track open items: [`spec/open_questions.md`](../spec/open_questions.md)
