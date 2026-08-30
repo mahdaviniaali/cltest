@@ -17,6 +17,7 @@ not_authoritative_for:
 | Topic | Owner | verify |
 |---|---|---|
 | Entrypoint & run flow | [`current_state/entrypoint.md`](current_state/entrypoint.md) | `project/main.py` |
+| Persistence (advertisements) | [`current_state/persistence.md`](current_state/persistence.md) | `project/src/app/` |
 | Frontend status | [`current_state/frontend.md`](current_state/frontend.md) | `frontend/` |
 
 ## Platform Dependency

@@ -22,6 +22,8 @@ not_authoritative_for:
 | `TIMEOUT` | `int` | env `CRAWLER_TIMEOUT`, default `30` |
 | `USER_AGENT` | `str` | env `CRAWLER_USER_AGENT`, see default below |
 | `OUTPUT_DIR` | `Path` | env `CRAWLER_OUTPUT_DIR`, default `data/` |
+| `DATA_DIR` | `Path` | `BASE_DIR / data` |
+| `DATABASE_URL` | `str` | env `DATABASE_URL`, default SQLite `data/app.db` |
 
 ## Default USER_AGENT
 
@@ -44,6 +46,7 @@ CrawlerBot/1.0 (+https://example.com/bot)
 | `CRAWLER_TIMEOUT` | `30` | `settings.TIMEOUT` |
 | `CRAWLER_USER_AGENT` | see above | `settings.USER_AGENT` |
 | `CRAWLER_OUTPUT_DIR` | `data/` | `settings.OUTPUT_DIR` |
+| `DATABASE_URL` | `sqlite:///data/app.db` | `settings.DATABASE_URL` |
 
 ## Side Effects on Import
 
