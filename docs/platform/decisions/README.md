@@ -17,6 +17,8 @@ not_authoritative_for:
 | [001](001-layered-crawler-architecture.md) | Layered crawler architecture | Accepted | 2026-08-30 |
 | [002](002-json-storage.md) | JSON file storage | Accepted | 2026-08-30 |
 | [003](003-requests-http-client.md) | requests as HTTP client | Accepted | 2026-08-30 |
+| [004](004-scrapy-crawl4ai-crawl-tools.md) | Scrapy & Crawl4AI as crawl infrastructure tools | Accepted | 2026-08-30 |
+| [005](005-relational-db-manual-schema.md) | Relational DB + manual schema design | Accepted | 2026-08-30 |
 
 ## Rules
 

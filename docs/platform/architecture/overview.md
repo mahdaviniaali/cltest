@@ -54,3 +54,9 @@ Application (main.py, *Crawler)
 
 - Platform **does not** know about specific target sites (except `ExampleCrawler` as sample)
 - Platform **does not** expose HTTP server or CLI framework
+
+## Hexagonal Model
+
+معماری **Ports & Adapters** — crawl tools (Scrapy, Crawl4AI, requests+BS4) در لایه infrastructure هستند و به domain گره نمی‌خورند.
+
+→ جزئیات: [`hexagonal_crawl_tools.md`](hexagonal_crawl_tools.md) · ADR: [`decisions/004-scrapy-crawl4ai-crawl-tools.md`](../decisions/004-scrapy-crawl4ai-crawl-tools.md)

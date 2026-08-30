@@ -91,7 +91,28 @@ Bama.ir → crawl دوره‌ای → تشخیص آگهی جدید → ذخیر�
 | [`docs/application/spec/open_questions.md`](docs/application/spec/open_questions.md) | سؤالات باز با owner |
 | [`docs/METHODOLOGY.md`](docs/METHODOLOGY.md) | فلسفه مستندسازی |
 
-**قدم بعدی:** بستن open questions مربوط به Phase 1 (Bama crawl + schema + persistence) و ثبت ADR برای تصمیم‌های irreversible.
+**قدم بعدی:** schema جداول باقی‌مانده (users, searches, matches, notifications) + open questions Phase 1.
+
+**تصمیم اخیر — schema آگهی‌ها:**
+
+- فیلدهای Bama.ir inspect شد → جدول `advertisements` با ۲۷ ستون طراحی شد
+- dedup key: `bama_id` (UNIQUE)
+- Spec: [`docs/application/spec/schema/advertisements.md`](docs/application/spec/schema/advertisements.md)
+- OQ-008 بسته شد
+
+**تصمیم اخیر — persistence / schema:**
+
+- با توجه به سایت مشخص (Bama.ir) و وقت محدود، **schema را دستی** طراحی می‌کنم — نه entity detection با XPath/CSS
+- **Relational DB:** SQLite برای dev/MVP، PostgreSQL برای production
+- ADR: [`docs/platform/decisions/005-relational-db-manual-schema.md`](docs/platform/decisions/005-relational-db-manual-schema.md)
+- OQ-007 بسته شد
+
+**تصمیم اخیر — ابزار crawl:**
+
+- **Scrapy** و **Crawl4AI** نصب شدند (`project/requirements.txt`)
+- معماری **Hexagonal** — این‌ها فقط **infrastructure adapter** هستند، نه هسته domain
+- ADR: [`docs/platform/decisions/004-scrapy-crawl4ai-crawl-tools.md`](docs/platform/decisions/004-scrapy-crawl4ai-crawl-tools.md)
+- جزئیات ports/adapters: [`docs/platform/architecture/hexagonal_crawl_tools.md`](docs/platform/architecture/hexagonal_crawl_tools.md)
 
 ---
 
@@ -155,4 +176,4 @@ python main.py
 
 ---
 
-*آخرین به‌روزرسانی روایت: مرحله ۲ (Use Cases) — مرداد ۱۴۰۵*
+*آخرین به‌روزرسانی روایت: مرحله ۳ — تصمیم DB/schema (ADR 005) — مرداد ۱۴۰۵*

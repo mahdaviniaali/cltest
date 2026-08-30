@@ -29,6 +29,6 @@ Application layer (`main.py`, custom crawlers) composition root است.
 ## Rejected Alternatives
 
 - **Monolithic script** — not reusable, hard to test parsers
-- **Scrapy framework** — heavier dependency for current scope
+- **Scrapy framework** — heavier dependency for current scope *(superseded by ADR 004 — adopted as infrastructure adapter, not architecture core)*
 
 > API فعلی: [`current_state/modules.md`](../current_state/modules.md)

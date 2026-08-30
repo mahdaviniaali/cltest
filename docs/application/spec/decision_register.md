@@ -15,9 +15,10 @@ not_authoritative_for:
 | ID | Title | Status | ADR |
 |---|---|---|---|
 | P-001 | Layered architecture | Accepted | [platform/decisions/001](../platform/decisions/001-layered-crawler-architecture.md) |
-| P-002 | JSON storage | Accepted | [platform/decisions/002](../platform/decisions/002-json-storage.md) |
+| P-002 | JSON storage | Superseded (production) → P-005 | [platform/decisions/002](../platform/decisions/002-json-storage.md) |
 | P-003 | requests HTTP | Accepted | [platform/decisions/003](../platform/decisions/003-requests-http-client.md) |
 | P-004 | Layered documentation | Accepted | [learning report](../knowledge/learning_reports/001-layered-documentation-adoption.md) |
+| P-005 | Relational DB + manual schema | Accepted | [platform/decisions/005](../platform/decisions/005-relational-db-manual-schema.md) |
 
 ## Application Decisions
 

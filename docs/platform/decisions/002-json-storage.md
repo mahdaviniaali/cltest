@@ -25,3 +25,5 @@
 - **PostgreSQL** — requires infra not yet needed
 
 > Contract فعلی: [`current_state/storage.md`](../current_state/storage.md)
+
+> **Superseded for production persistence** by [ADR 005](005-relational-db-manual-schema.md) — JSON storage remains valid for Phase 0 scaffold only.
