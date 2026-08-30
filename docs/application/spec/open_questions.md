@@ -14,17 +14,21 @@ not_authoritative_for:
 
 | ID | Question | Owner | Blocking? | Domain | Status |
 |---|---|---|---|---|---|
-| OQ-001 | کدام سایت target اول production crawl است؟ | product | ✅ Phase 1 | application | open |
-| OQ-002 | Frontend framework: React, Vue, or other? | frontend | ✅ Phase 2 | application | open |
-| OQ-003 | API layer: REST, CLI-only, or both? | platform+app | ✅ Phase 2 | shared | open |
-| OQ-004 | Rate limiting / robots.txt policy? | platform | ❌ | platform | open |
-| OQ-005 | Async crawl (concurrent URLs)? | platform | ❌ | platform | open |
+| OQ-002 | Frontend لازم است یا API-only کافی است؟ | product | ❌ | application | open |
+| OQ-003 | API design: REST shape, auth, versioning | platform+app | ✅ approach | shared | open |
+| OQ-004 | Rate limiting / robots.txt policy for Bama.ir | platform | ✅ crawl | platform | open |
+| OQ-005 | Async model: queue vs in-process scheduler | platform | ✅ approach | platform | open |
+| OQ-006 | Notification channel اول: Email, Telegram, Webhook, …? | application | ✅ approach | application | open |
+| OQ-007 | Database: relational vs document vs other | platform | ✅ approach | platform | open |
+| OQ-008 | Dedup key strategy when Bama has no stable ID | platform | ✅ crawl | platform | open |
+| OQ-009 | K8s topology: single deployment vs split services | infra | ✅ deploy | shared | open |
+| OQ-010 | Observability stack: logs, metrics, tracing | infra | ❌ | shared | open |
 
 ## Closed Questions
 
 | ID | Question | Resolution | Link |
 |---|---|---|---|
-| — | — | — | — |
+| OQ-001 | Target site production crawl | Bama.ir — car advertisements | [`base/تعریف_پروژه.md`](../../base/تعریف_پروژه.md) |
 
 ## Close Protocol
 

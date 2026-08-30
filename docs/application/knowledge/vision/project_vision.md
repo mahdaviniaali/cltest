@@ -14,25 +14,28 @@ not_authoritative_for:
 
 ## Problem
 
-جمع‌آوری structured data از وب به‌صورت repeatable و قابل مشاهده.
+کاربران Bama.ir می‌خواهند به‌محض publish آگهی جدید خودرو که با criteria آن‌ها match می‌کند، **notify** شوند — بدون refresh دستی مداوم.
 
 ## Target Users
 
-- Developer که crawl script می‌نویسد
-- Operator که نتایج را monitor می‌کند (via future UI)
+- کاربر نهایی که search/filter تعریف می‌کند (via API)
+- Operator/DevOps که crawl و notification را monitor می‌کند
 
 ## Success Criteria (Draft)
 
 | Criterion | Measure |
 |---|---|
-| Reliable fetch | retry + logging |
-| Extensible parsers | new site < 1 day |
-| Observable output | JSON + future UI |
+| New ads detected | dedup + no duplicate records |
+| Match accuracy | criteria correctly applied |
+| No repeat notify | same ad + user + search once |
+| Crawl resilience | graceful failure + retry |
+| Deployable | Docker + K8s |
+| Observable | logs + health baseline |
 
 ## Non-Goals (Current)
 
-- Distributed crawl cluster
-- Real-time streaming
-- CAPTCHA bypass
+- Anti-bot / CAPTCHA bypass
+- Real-time sub-second alerts (periodic crawl OK)
+- Mobile native app
 
 > **maturity: input** — cannot drive implementation until promoted to accepted.

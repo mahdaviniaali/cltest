@@ -13,21 +13,23 @@ not_authoritative_for:
 
 ## Vision (One Line)
 
-کرالر وب Python با UI برای مشاهده و مدیریت نتایج crawl.
+Bama.ir New Ads Crawler & Notification System — monitor آگهی‌های جدید، match با فیلتر کاربر، notify.
 
 ## Current Phase
 
-**Phase 0 — Scaffold**
+**Phase 0 — Scaffold + Definition**
 
 | Deliverable | Status |
 |---|---|
-| Platform crawler core | ✅ |
-| Example crawl (example.com) | ✅ |
-| JSON output | ✅ |
-| Layered documentation | ✅ |
-| Frontend | ❌ scaffold only |
-| API layer | ❌ |
-| Production target site | ❌ undefined |
+| Project definition (Bama task) | ✅ [`base/تعریف_پروژه.md`](../../base/تعریف_پروژه.md) |
+| Project approach | ❌ TBD — [`base/رویکرد_پروژه.md`](../../base/رویکرد_پروژه.md) |
+| Platform crawler core | ✅ (example.com baseline) |
+| Bama crawler | ❌ |
+| User/search API | ❌ |
+| Matching engine | ❌ |
+| Notification (≥1 channel) | ❌ |
+| Persistence (DB) | ❌ |
+| K8s deployment | ❌ |
 
 ## Architecture Locks
 
@@ -41,17 +43,23 @@ not_authoritative_for:
 
 | Gate | Blocker |
 |---|---|
-| Phase 1 — First real site | OQ-001 target site |
-| Phase 2 — API + Frontend | OQ-002 framework, OQ-003 API design |
+| Approach defined | [`base/رویکرد_پروژه.md`](../../base/رویکرد_پروژه.md) — pending architecture session |
+| Phase 1 — Bama crawl + dedup | OQ-004, OQ-008 + approach |
+| Phase 2 — User API + Matching | OQ-003, OQ-007 |
+| Phase 3 — Notification + deploy | OQ-006, OQ-009 |
 
 ## Capability Domains (Draft)
 
 | Domain | L0 Status |
 |---|---|
-| Fetch | L1 — baseline (HttpClient) |
-| Parse | L1 — baseline (HtmlParser) |
-| Store | L1 — JSON file |
-| Schedule | L0 — not built |
-| UI | L0 — scaffold only |
+| Fetch (Bama) | L0 — example.com baseline only |
+| Parse (Bama) | L0 |
+| Store (ads) | L0 — JSON scaffold ≠ production DB |
+| Dedup | L0 |
+| Schedule | L0 |
+| User/Search API | L0 |
+| Match | L0 |
+| Notify | L0 |
+| Deploy (K8s) | L0 |
 
 > Capability maturity ≠ existence. See [`knowledge/capabilities/capability_map.md`](../knowledge/capabilities/capability_map.md).
