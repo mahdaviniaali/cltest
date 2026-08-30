@@ -18,6 +18,15 @@ export interface Search {
   enabled: boolean;
   created_at: string;
   updated_at: string;
+  bootstrapped_at?: string | null;
+  last_bootstrap_job_id?: string | null;
+}
+
+export interface SearchCreateResponse extends Search {
+  cached_count: number;
+  cache_sufficient: boolean;
+  is_crawling: boolean;
+  job_id?: string | null;
 }
 
 export interface SearchInput {
@@ -56,6 +65,8 @@ export interface DataPreview {
   total_count: number;
   last_updated_at: string | null;
   is_refreshing: boolean;
+  bootstrapped?: boolean;
+  cache_sufficient?: boolean;
 }
 
 export interface DataStatus {
@@ -66,6 +77,8 @@ export interface DataStatus {
 export interface RefreshResponse {
   is_refreshing: boolean;
   message: string;
+  job_id?: string | null;
+  used_bootstrap?: boolean;
 }
 
 export interface AdFilterInput {

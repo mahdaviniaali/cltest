@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import SearchForm, { SearchSummary } from "../components/SearchForm";
 import { useAuth } from "../context/AuthContext";
-import type { Search, SearchInput } from "../types";
+import type { Search, SearchCreateResponse, SearchInput } from "../types";
 
 export default function DashboardPage() {
   const navigate = useNavigate();
@@ -32,9 +32,13 @@ export default function DashboardPage() {
   }, [loadSearches]);
 
   async function handleCreate(data: SearchInput) {
-    const created = await api.createSearch(data);
+    const created: SearchCreateResponse = await api.createSearch(data);
     setShowForm(false);
     await loadSearches();
+    if (created.is_crawling && created.job_id) {
+      navigate(`/searches/${created.id}`);
+      return;
+    }
     navigate(`/searches/${created.id}`);
   }
 

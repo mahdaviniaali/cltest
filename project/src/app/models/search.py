@@ -38,5 +38,7 @@ class Search(Base):
         server_default=func.now(),
         onupdate=func.now(),
     )
+    bootstrapped_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    last_bootstrap_job_id: Mapped[Optional[str]] = mapped_column(String(36))
 
     user: Mapped["User"] = relationship(back_populates="searches")

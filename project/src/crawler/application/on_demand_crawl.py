@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Optional
 from uuid import uuid4
@@ -10,8 +11,15 @@ from app.models.crawl_job import CrawlJobType
 from app.repositories.advertisement_repository import AdvertisementRepository
 from app.repositories.crawl_job_repository import CrawlJobRepository
 from app.repositories.search_repository import SearchRepository
-from crawler.domain.entities import OnDemandCrawlResult
 from config import settings
+from crawler.domain.entities import OnDemandCrawlResult
+
+
+@dataclass(slots=True)
+class CacheEvaluation:
+    cached_count: int
+    sufficient: bool
+    fresh_enough: bool
 
 
 class OnDemandCrawlService:
@@ -28,6 +36,20 @@ class OnDemandCrawlService:
         if search is None:
             raise ValueError("Search not found")
 
+        cache = self.evaluate_cache_for_search(search)
+        if cache.sufficient:
+            return OnDemandCrawlResult(used_cache=True, job_id=None, cached_count=cache.cached_count)
+
+        job = self._jobs.create(
+            job_type=CrawlJobType.ON_DEMAND_SEARCH.value,
+            triggered_by=f"search:{search_id}",
+            search_id=search_id,
+            idempotency_key=f"on-demand-search:{search_id}:{uuid4()}",
+        )
+        self._session.commit()
+        return OnDemandCrawlResult(used_cache=False, job_id=job.id, cached_count=cache.cached_count)
+
+    def evaluate_cache_for_search(self, search: Any) -> CacheEvaluation:
         cached = self._ads.list_matching_filter(
             brand=search.brand,
             model=search.model,
@@ -39,18 +61,12 @@ class OnDemandCrawlService:
         )
         cached_count = len(cached)
         fresh_enough = self._is_cache_fresh(cached)
-
-        if cached_count >= settings.CRAWL_ON_DEMAND_CACHE_MIN_COUNT and fresh_enough:
-            return OnDemandCrawlResult(used_cache=True, job_id=None, cached_count=cached_count)
-
-        job = self._jobs.create(
-            job_type=CrawlJobType.ON_DEMAND_SEARCH.value,
-            triggered_by=f"search:{search_id}",
-            search_id=search_id,
-            idempotency_key=f"on-demand-search:{search_id}:{uuid4()}",
+        sufficient = cached_count >= settings.CRAWL_ON_DEMAND_CACHE_MIN_COUNT and fresh_enough
+        return CacheEvaluation(
+            cached_count=cached_count,
+            sufficient=sufficient,
+            fresh_enough=fresh_enough,
         )
-        self._session.commit()
-        return OnDemandCrawlResult(used_cache=False, job_id=job.id, cached_count=cached_count)
 
     def trigger_global(self) -> str:
         job = self._jobs.create(
@@ -65,5 +81,7 @@ class OnDemandCrawlService:
         if not ads:
             return False
         newest = max(ad.crawled_at for ad in ads)
+        if newest.tzinfo is None:
+            newest = newest.replace(tzinfo=timezone.utc)
         age = (datetime.now(timezone.utc) - newest).total_seconds()
         return age <= settings.CRAWL_STALENESS_SECONDS

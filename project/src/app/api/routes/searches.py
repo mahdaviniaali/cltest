@@ -5,10 +5,18 @@ from app.api.deps import get_current_user, get_db
 from app.models.user import User
 from app.repositories.search_repository import SearchRepository
 from app.schemas.crawl import AdOut, DataPreviewOut
-from app.schemas.search import SearchCreate, SearchOut, SearchUpdate
+from app.schemas.search import SearchCreate, SearchCreateOut, SearchOut, SearchRefreshOut, SearchUpdate
 from app.services.data_preview import DataPreviewService, FilterCriteria
+from app.services.job_dispatch import dispatch_on_demand_job
+from app.services.matching import MatchingService
+from app.services.search_refresh import SearchRefreshService
+from crawler.application.on_demand_crawl import OnDemandCrawlService
 
 router = APIRouter(prefix="/searches", tags=["searches"])
+
+
+def _search_out(search) -> SearchOut:
+    return SearchOut.model_validate(search)
 
 
 @router.get("", response_model=list[SearchOut])
@@ -17,18 +25,43 @@ def list_searches(
     db: Session = Depends(get_db),
 ) -> list[SearchOut]:
     repo = SearchRepository(db)
-    return [SearchOut.model_validate(item) for item in repo.list_for_user(current_user.id)]
+    return [_search_out(item) for item in repo.list_for_user(current_user.id)]
 
 
-@router.post("", response_model=SearchOut, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=SearchCreateOut, status_code=status.HTTP_201_CREATED)
 def create_search(
     payload: SearchCreate,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-) -> SearchOut:
+) -> SearchCreateOut:
     repo = SearchRepository(db)
     search = repo.create(current_user.id, payload.model_dump())
-    return SearchOut.model_validate(search)
+
+    on_demand = OnDemandCrawlService(db)
+    evaluation = on_demand.evaluate_search(search.id, current_user.id)
+    cache = on_demand.evaluate_cache_for_search(search)
+    job_id = evaluation.job_id
+    is_crawling = False
+
+    if not evaluation.used_cache and job_id:
+        dispatch_on_demand_job(job_id)
+        is_crawling = True
+    else:
+        from datetime import datetime, timezone
+
+        if cache.sufficient:
+            search.bootstrapped_at = datetime.now(timezone.utc)
+            db.commit()
+            db.refresh(search)
+        MatchingService(db).match_existing_for_search(search.id)
+
+    return SearchCreateOut(
+        **_search_out(search).model_dump(),
+        cached_count=evaluation.cached_count,
+        cache_sufficient=cache.sufficient,
+        is_crawling=is_crawling,
+        job_id=job_id,
+    )
 
 
 @router.get("/{search_id}/results", response_model=DataPreviewOut)
@@ -42,23 +75,37 @@ def get_search_results(
     if search is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Search not found")
 
-    service = DataPreviewService(db)
-    result = service.preview(
-        FilterCriteria(
-            brand=search.brand,
-            model=search.model,
-            min_year=search.min_year,
-            max_price=search.max_price,
-            max_mileage=search.max_mileage,
-            location=search.location,
-        ),
-        limit=50,
-    )
+    result = DataPreviewService(db).preview_for_search(search, limit=50)
     return DataPreviewOut(
         ads=[AdOut.model_validate(ad) for ad in result.ads],
         total_count=result.total_count,
         last_updated_at=result.last_updated_at,
         is_refreshing=result.is_refreshing,
+        bootstrapped=result.bootstrapped,
+        cache_sufficient=result.cache_sufficient,
+    )
+
+
+@router.post("/{search_id}/refresh", response_model=SearchRefreshOut, status_code=status.HTTP_202_ACCEPTED)
+def refresh_search(
+    search_id: int,
+    force: bool = False,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> SearchRefreshOut:
+    repo = SearchRepository(db)
+    search = repo.get_for_user(current_user.id, search_id)
+    if search is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Search not found")
+
+    refresh = SearchRefreshService(db).request_refresh(search, force=force)
+    if refresh.job_id:
+        dispatch_on_demand_job(refresh.job_id)
+    return SearchRefreshOut(
+        is_refreshing=refresh.is_refreshing,
+        message=refresh.message,
+        job_id=refresh.job_id,
+        used_bootstrap=refresh.used_bootstrap,
     )
 
 
@@ -72,7 +119,7 @@ def get_search(
     search = repo.get_for_user(current_user.id, search_id)
     if search is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Search not found")
-    return SearchOut.model_validate(search)
+    return _search_out(search)
 
 
 @router.put("/{search_id}", response_model=SearchOut)
@@ -89,7 +136,7 @@ def update_search(
 
     data = payload.model_dump(exclude_unset=True)
     updated = repo.update(search, data)
-    return SearchOut.model_validate(updated)
+    return _search_out(updated)
 
 
 @router.delete("/{search_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -116,4 +163,4 @@ def toggle_search(
     if search is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Search not found")
     updated = repo.toggle_enabled(search)
-    return SearchOut.model_validate(updated)
+    return _search_out(updated)

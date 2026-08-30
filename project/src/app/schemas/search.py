@@ -35,5 +35,21 @@ class SearchOut(SearchBase):
     user_id: int
     created_at: datetime
     updated_at: datetime
+    bootstrapped_at: Optional[datetime] = None
+    last_bootstrap_job_id: Optional[str] = None
 
     model_config = {"from_attributes": True}
+
+
+class SearchCreateOut(SearchOut):
+    cached_count: int = 0
+    cache_sufficient: bool = False
+    is_crawling: bool = False
+    job_id: Optional[str] = None
+
+
+class SearchRefreshOut(BaseModel):
+    is_refreshing: bool = True
+    message: str
+    job_id: Optional[str] = None
+    used_bootstrap: bool = False

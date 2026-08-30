@@ -5,6 +5,7 @@ import type {
   DataStatus,
   RefreshResponse,
   Search,
+  SearchCreateResponse,
   SearchInput,
   User,
 } from "../types";
@@ -85,7 +86,7 @@ export const api = {
     return request<Search[]>("/api/searches");
   },
   createSearch(data: SearchInput) {
-    return request<Search>("/api/searches", {
+    return request<SearchCreateResponse>("/api/searches", {
       method: "POST",
       body: JSON.stringify(data),
     });
@@ -111,8 +112,16 @@ export const api = {
   getSearchResults(searchId: number) {
     return request<DataPreview>(`/api/searches/${searchId}/results`);
   },
+  refreshSearch(searchId: number, force = false) {
+    return request<RefreshResponse>(`/api/searches/${searchId}/refresh?force=${force}`, {
+      method: "POST",
+    });
+  },
   refreshData() {
     return request<RefreshResponse>("/api/crawl/refresh", { method: "POST" });
+  },
+  getCrawlJob(jobId: string) {
+    return request<{ id: string; status: string; job_type: string }>(`/api/crawl/jobs/${jobId}`);
   },
   getDataStatus() {
     return request<DataStatus>("/api/data/status");

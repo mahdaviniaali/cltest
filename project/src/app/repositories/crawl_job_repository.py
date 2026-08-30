@@ -28,6 +28,17 @@ class CrawlJobRepository:
         )
         return self._session.scalar(stmt)
 
+    def get_running_for_search(self, search_id: int) -> Optional[CrawlJob]:
+        stmt = (
+            select(CrawlJob)
+            .where(
+                CrawlJob.search_id == search_id,
+                CrawlJob.status == CrawlJobStatus.RUNNING.value,
+            )
+            .limit(1)
+        )
+        return self._session.scalar(stmt)
+
     def get_any_running(self) -> Optional[CrawlJob]:
         stmt = (
             select(CrawlJob)

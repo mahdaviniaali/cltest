@@ -1,6 +1,6 @@
 from typing import Any, Optional
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models.advertisement import Advertisement
@@ -91,9 +91,9 @@ class AdvertisementRepository:
             Advertisement.is_sold.is_(False),
         )
         if brand:
-            stmt = stmt.where(Advertisement.brand == brand)
+            stmt = stmt.where(func.lower(Advertisement.brand) == brand.lower())
         if model:
-            stmt = stmt.where(Advertisement.model == model)
+            stmt = stmt.where(func.lower(Advertisement.model) == model.lower())
         if min_year is not None:
             stmt = stmt.where(Advertisement.year >= min_year)
         if max_price is not None:

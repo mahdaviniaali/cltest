@@ -9,7 +9,7 @@ from app.models.crawl_job import CrawlJobType
 from app.repositories.crawl_job_repository import CrawlJobRepository
 from app.workers.celery_app import celery_app
 from config import settings
-from crawler.application.crawl_job_runner import run_incremental_job, run_site_map_job
+from crawler.application.crawl_job_runner import run_incremental_job, run_on_demand_job, run_site_map_job
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +47,7 @@ def scheduled_incremental(self) -> dict:
 def on_demand_crawl(self, job_id: str) -> dict:
     session = SessionLocal()
     try:
-        run_incremental_job(session, job_id)
+        run_on_demand_job(session, job_id)
         return {"job_id": job_id, "status": "completed"}
     finally:
         session.close()

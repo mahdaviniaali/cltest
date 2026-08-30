@@ -1,7 +1,7 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "../api/client";
 import type { Search, SearchInput } from "../types";
-import AdPreviewPanel, { useDataRefresh, useLivePreview } from "./AdPreviewPanel";
+import AdPreviewPanel, { pollSearchBootstrap, useDataRefresh, useLivePreview } from "./AdPreviewPanel";
 
 interface Props {
   initial?: Search;

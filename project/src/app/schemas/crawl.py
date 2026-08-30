@@ -35,6 +35,8 @@ class DataPreviewOut(BaseModel):
     total_count: int
     last_updated_at: Optional[datetime] = None
     is_refreshing: bool
+    bootstrapped: bool = False
+    cache_sufficient: bool = False
 
 
 class DataStatusOut(BaseModel):

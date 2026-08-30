@@ -122,19 +122,19 @@ def test_api_preview_endpoint(client, db_session):
     assert len(body["ads"]) == 1
 
 
-@patch("app.api.routes.crawl.on_demand_crawl.delay")
-def test_refresh_starts_job_when_idle(mock_delay, client, db_session):
+@patch("app.api.routes.crawl.dispatch_on_demand_job")
+def test_refresh_starts_job_when_idle(mock_dispatch, client, db_session):
     response = client.post("/api/crawl/refresh")
     assert response.status_code == 202
     body = response.json()
     assert body["is_refreshing"] is True
     assert "بروزرسانی" in body["message"]
     assert "job_id" not in body
-    mock_delay.assert_called_once()
+    mock_dispatch.assert_called_once()
 
 
-@patch("app.api.routes.crawl.on_demand_crawl.delay")
-def test_refresh_idempotent_while_running(mock_delay, client, db_session):
+@patch("app.api.routes.crawl.dispatch_on_demand_job")
+def test_refresh_idempotent_while_running(mock_dispatch, client, db_session):
     db_session.add(
         CrawlJob(
             id="running-1",
@@ -151,17 +151,49 @@ def test_refresh_idempotent_while_running(mock_delay, client, db_session):
     assert response.status_code == 202
     body = response.json()
     assert body["is_refreshing"] is True
-    mock_delay.assert_not_called()
+    mock_dispatch.assert_not_called()
 
 
-@patch("app.workers.tasks.crawl.on_demand_crawl.delay")
-def test_create_search_does_not_auto_crawl(mock_delay, client, db_session):
+@patch("app.api.routes.searches.dispatch_on_demand_job")
+def test_create_search_dispatches_when_cache_insufficient(mock_dispatch, client, db_session):
     response = client.post(
         "/api/searches",
-        json={"brand": "Renault", "enabled": True},
+        json={"brand": "Dena", "model": "Plus", "enabled": True},
     )
     assert response.status_code == 201
-    mock_delay.assert_not_called()
+    body = response.json()
+    assert body["is_crawling"] is True
+    assert body["job_id"] is not None
+    assert body["cache_sufficient"] is False
+    mock_dispatch.assert_called_once_with(body["job_id"])
+
+
+@patch("app.api.routes.searches.dispatch_on_demand_job")
+def test_create_search_uses_cache_when_sufficient(mock_dispatch, client, db_session):
+    now = datetime.now(timezone.utc)
+    for i in range(5):
+        db_session.add(
+            Advertisement(
+                bama_id=f"cached-{i}",
+                url=f"https://bama.ir/car/detail-{i}",
+                title=f"Dena {i}",
+                brand="Dena",
+                model="Plus",
+                crawled_at=now,
+            )
+        )
+    db_session.commit()
+
+    response = client.post(
+        "/api/searches",
+        json={"brand": "Dena", "model": "Plus", "enabled": True},
+    )
+    assert response.status_code == 201
+    body = response.json()
+    assert body["is_crawling"] is False
+    assert body["cache_sufficient"] is True
+    assert body["cached_count"] >= 5
+    mock_dispatch.assert_not_called()
 
 
 def test_search_results_endpoint(client, db_session):

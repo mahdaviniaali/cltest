@@ -62,7 +62,17 @@ When user creates search:
 
 1. Query DB for ads matching filter
 2. If count ≥ threshold and data younger than `CRAWL_STALENESS_SECONDS` → return cached
-3. Else enqueue background incremental crawl; API returns job id for polling
+3. Else enqueue **search bootstrap** crawl (`ON_DEMAND_SEARCH`); API returns job id for polling
+
+### 6. Bootstrap vs incremental handoff (2026-08-31)
+
+| Phase | Job type | Behavior |
+|---|---|---|
+| First fetch for filter | `ON_DEMAND_SEARCH` | Scoped listing crawl until cache ≥ min count; sets `searches.bootstrapped_at` |
+| After bootstrap + sufficient cache | `ON_DEMAND_GLOBAL` on refresh | Incremental newest-first only — shared beat continues updates |
+| Scheduled | `SCHEDULED_INCREMENTAL` | Background refresh every `CRAWL_INTERVAL_SECONDS` |
+
+Bootstrap does **not** replace incremental checkpoint; it backfills the shared `advertisements` cache for a filter.
 
 ## Consequences
 

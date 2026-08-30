@@ -50,6 +50,28 @@ def dispatch_site_map_job(
     return "thread"
 
 
+def dispatch_on_demand_job(job_id: str) -> str:
+    """Enqueue on-demand crawl via Celery when broker is up; otherwise background thread."""
+    if _broker_available(settings.CELERY_BROKER_URL):
+        from app.workers.tasks.crawl import on_demand_crawl
+
+        try:
+            on_demand_crawl.delay(job_id)
+            return "celery"
+        except Exception as exc:
+            logger.warning("Celery publish failed (%s) — using background thread", exc)
+
+    logger.info("Redis/Celery unavailable — running on-demand job %s in background thread", job_id)
+    thread = threading.Thread(
+        target=_run_on_demand_in_thread,
+        args=(job_id,),
+        daemon=True,
+        name=f"on-demand-{job_id[:8]}",
+    )
+    thread.start()
+    return "thread"
+
+
 def _run_site_map_in_thread(
     job_id: str,
     *,
@@ -64,5 +86,18 @@ def _run_site_map_in_thread(
         run_site_map_job(session, job_id, max_pages=max_pages, max_depth=max_depth)
     except Exception:
         logger.exception("Background site map job failed: %s", job_id)
+    finally:
+        session.close()
+
+
+def _run_on_demand_in_thread(job_id: str) -> None:
+    from app.db.engine import SessionLocal
+    from crawler.application.crawl_job_runner import run_on_demand_job
+
+    session = SessionLocal()
+    try:
+        run_on_demand_job(session, job_id)
+    except Exception:
+        logger.exception("Background on-demand job failed: %s", job_id)
     finally:
         session.close()

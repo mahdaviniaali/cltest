@@ -44,3 +44,10 @@ def upgrade_schema(engine: Engine) -> None:
             _add_sqlite_column(engine, "crawl_jobs", "pages_failed", "INTEGER NOT NULL DEFAULT 0")
         if "current_depth" not in existing:
             _add_sqlite_column(engine, "crawl_jobs", "current_depth", "INTEGER NOT NULL DEFAULT 0")
+
+    if inspector.has_table("searches"):
+        existing = _sqlite_columns(engine, "searches")
+        if "bootstrapped_at" not in existing:
+            _add_sqlite_column(engine, "searches", "bootstrapped_at", "DATETIME")
+        if "last_bootstrap_job_id" not in existing:
+            _add_sqlite_column(engine, "searches", "last_bootstrap_job_id", "VARCHAR(36)")

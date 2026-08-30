@@ -20,25 +20,41 @@ interface Props {
   loading: boolean;
   onRefresh: () => void;
   refreshing: boolean;
+  searchId?: number;
 }
 
-export default function AdPreviewPanel({ preview, loading, onRefresh, refreshing }: Props) {
+export default function AdPreviewPanel({
+  preview,
+  loading,
+  onRefresh,
+  refreshing,
+  searchId,
+}: Props) {
+  const showHandoffHint = preview?.bootstrapped && preview.cache_sufficient;
+
   return (
     <section className="panel preview-panel">
       <div className="preview-header">
         <div>
           <h3>پیش‌نمایش داده‌های موجود</h3>
           <p className="muted">
-            آخرین بروزرسانی سراسری: {formatDate(preview?.last_updated_at ?? null)}
+            آخرین بروزرسانی این فیلتر: {formatDate(preview?.last_updated_at ?? null)}
           </p>
+          {showHandoffHint && (
+            <p className="muted">بروزرسانی بعدی از crawl دوره‌ای انجام می‌شود.</p>
+          )}
         </div>
         <button type="button" onClick={onRefresh} disabled={refreshing || preview?.is_refreshing}>
-          {refreshing || preview?.is_refreshing ? "در حال بروزرسانی..." : "بروزرسانی داده‌ها"}
+          {refreshing || preview?.is_refreshing
+            ? "در حال بروزرسانی..."
+            : searchId
+              ? "بروزرسانی داده‌ها"
+              : "بروزرسانی سراسری"}
         </button>
       </div>
 
       {(preview?.is_refreshing || refreshing) && (
-        <p className="refresh-banner">داده‌ها در حال بروزرسانی هستند</p>
+        <p className="refresh-banner">در حال جستجو در bama.ir و بروزرسانی cache...</p>
       )}
 
       {loading && <p className="muted">در حال بارگذاری پیش‌نمایش...</p>}
@@ -49,7 +65,11 @@ export default function AdPreviewPanel({ preview, loading, onRefresh, refreshing
             {preview.total_count} آگهی مطابق با معیارهای شما در cache موجود است
           </p>
           {preview.total_count === 0 ? (
-            <p className="muted">هنوز آگهی‌ای با این مشخصات ذخیره نشده — می‌توانید بروزرسانی کنید.</p>
+            <p className="muted">
+              {preview.is_refreshing
+                ? "در حال جستجو برای یافتن آگهی..."
+                : "هنوز آگهی‌ای با این مشخصات ذخیره نشده — با ذخیره فیلتر، جستجو آغاز می‌شود."}
+            </p>
           ) : (
             <ul className="ad-list">
               {preview.ads.map((ad) => (
@@ -80,6 +100,33 @@ function AdCard({ ad }: { ad: Ad }) {
       </a>
     </li>
   );
+}
+
+export function useSearchRefresh(searchId: number | undefined, onComplete: () => void) {
+  const [refreshing, setRefreshing] = useState(false);
+
+  const pollUntilDone = useCallback(async () => {
+    for (let i = 0; i < 60; i++) {
+      await new Promise((r) => setTimeout(r, 5000));
+      if (!searchId) break;
+      const preview = await api.getSearchResults(searchId);
+      if (!preview.is_refreshing) {
+        setRefreshing(false);
+        onComplete();
+        return;
+      }
+    }
+    setRefreshing(false);
+  }, [onComplete, searchId]);
+
+  const triggerRefresh = useCallback(async () => {
+    if (!searchId) return;
+    setRefreshing(true);
+    await api.refreshSearch(searchId);
+    void pollUntilDone();
+  }, [pollUntilDone, searchId]);
+
+  return { refreshing, triggerRefresh };
 }
 
 export function useDataRefresh(onComplete: () => void) {
@@ -138,4 +185,25 @@ export function useLivePreview(filter: {
   }, [filter.brand, filter.model, filter.min_year, filter.max_price, filter.max_mileage, filter.location]);
 
   return { preview, loading, setPreview };
+}
+
+export async function pollSearchBootstrap(
+  searchId: number,
+  jobId: string | null | undefined,
+  onTick: () => void,
+): Promise<void> {
+  for (let i = 0; i < 60; i++) {
+    await new Promise((r) => setTimeout(r, 3000));
+    onTick();
+    const preview = await api.getSearchResults(searchId);
+    if (!preview.is_refreshing && preview.total_count > 0) return;
+    if (jobId) {
+      try {
+        const job = await api.getCrawlJob(jobId);
+        if (job.status === "completed" || job.status === "failed") return;
+      } catch {
+        /* job may not exist yet */
+      }
+    }
+  }
 }

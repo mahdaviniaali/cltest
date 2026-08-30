@@ -6,10 +6,11 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.models.advertisement import Advertisement
+from app.models.search import Search
 from app.repositories.advertisement_repository import AdvertisementRepository
 from app.repositories.crawl_job_repository import CrawlJobRepository
 from app.repositories.crawler_state_repository import CrawlerStateRepository
+from app.services.search_refresh import SearchRefreshService
 
 
 @dataclass(slots=True)
@@ -24,10 +25,12 @@ class FilterCriteria:
 
 @dataclass(slots=True)
 class DataPreviewResult:
-    ads: list[Advertisement]
+    ads: list
     total_count: int
     last_updated_at: Optional[datetime]
     is_refreshing: bool
+    bootstrapped: bool = False
+    cache_sufficient: bool = False
 
 
 class DataPreviewService:
@@ -58,11 +61,36 @@ class DataPreviewService:
                 limit=1000,
             )
         )
+        last_updated = max((ad.crawled_at for ad in ads), default=None) or self._global_last_updated()
         return DataPreviewResult(
             ads=ads,
             total_count=total,
-            last_updated_at=self._global_last_updated(),
+            last_updated_at=last_updated,
             is_refreshing=self._is_refreshing(),
+        )
+
+    def preview_for_search(self, search: Search, *, limit: int = 50) -> DataPreviewResult:
+        from crawler.application.on_demand_crawl import OnDemandCrawlService
+
+        criteria = FilterCriteria(
+            brand=search.brand,
+            model=search.model,
+            min_year=search.min_year,
+            max_price=search.max_price,
+            max_mileage=search.max_mileage,
+            location=search.location,
+        )
+        result = self.preview(criteria, limit=limit)
+        cache = OnDemandCrawlService(self._session).evaluate_cache_for_search(search)
+        refresh_svc = SearchRefreshService(self._session)
+        last_updated = refresh_svc.max_matching_crawled_at(search) or result.last_updated_at
+        return DataPreviewResult(
+            ads=result.ads,
+            total_count=result.total_count,
+            last_updated_at=last_updated,
+            is_refreshing=self._is_refreshing_for_search(search.id),
+            bootstrapped=search.bootstrapped_at is not None,
+            cache_sufficient=cache.sufficient,
         )
 
     def status(self) -> tuple[Optional[datetime], bool]:
@@ -73,4 +101,9 @@ class DataPreviewService:
         return state.last_crawl_at if state else None
 
     def _is_refreshing(self) -> bool:
+        return self._jobs.get_any_running() is not None
+
+    def _is_refreshing_for_search(self, search_id: int) -> bool:
+        if self._jobs.get_running_for_search(search_id) is not None:
+            return True
         return self._jobs.get_any_running() is not None

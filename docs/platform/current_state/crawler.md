@@ -27,6 +27,7 @@ Hybrid incremental crawler (ADR 006) with hexagonal ports:
 | Scheduled incremental | Beat every `CRAWL_INTERVAL_SECONDS` | `crawl.scheduled_incremental` |
 | On-demand | API / search create | `crawl.on_demand` |
 | Site map BFS | Inspector `/api/inspector/site-map/start` | `crawl.site_map` |
+| Search bootstrap | `POST /api/searches` (cache miss) or `POST /api/searches/{id}/refresh` | `crawl.on_demand` → `ON_DEMAND_SEARCH` |
 
 ## Site map (ADR 008, ADR 009)
 

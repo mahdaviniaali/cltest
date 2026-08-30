@@ -13,8 +13,8 @@ from app.schemas.crawl import (
     RefreshOut,
 )
 from app.services.data_preview import DataPreviewService
+from app.services.job_dispatch import dispatch_on_demand_job
 from app.services.refresh import RefreshService
-from app.workers.tasks.crawl import on_demand_crawl
 from crawler.application.on_demand_crawl import OnDemandCrawlService
 
 router = APIRouter(tags=["crawl"])
@@ -28,7 +28,7 @@ def refresh_data(
     service = RefreshService(db)
     result = service.request_refresh()
     if result.job_id is not None:
-        on_demand_crawl.delay(result.job_id)
+        dispatch_on_demand_job(result.job_id)
     return RefreshOut(is_refreshing=result.is_refreshing, message=result.message)
 
 
@@ -49,7 +49,7 @@ def trigger_crawl(
     """Legacy admin-style trigger — prefer POST /crawl/refresh for user UX."""
     service = OnDemandCrawlService(db)
     job_id = service.trigger_global()
-    on_demand_crawl.delay(job_id)
+    dispatch_on_demand_job(job_id)
     return CrawlTriggerOut(job_id=job_id)
 
 

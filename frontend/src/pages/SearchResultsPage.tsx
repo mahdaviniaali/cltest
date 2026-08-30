@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { api } from "../api/client";
-import AdPreviewPanel, { useDataRefresh } from "../components/AdPreviewPanel";
+import AdPreviewPanel, { useSearchRefresh } from "../components/AdPreviewPanel";
 import { SearchSummary } from "../components/SearchForm";
 import type { DataPreview, Search } from "../types";
 
@@ -41,7 +41,15 @@ export default function SearchResultsPage() {
     void loadResults();
   }, [loadResults]);
 
-  const { refreshing, triggerRefresh } = useDataRefresh(() => {
+  useEffect(() => {
+    if (!preview?.is_refreshing) return;
+    const id = window.setInterval(() => {
+      void loadResults().catch(() => undefined);
+    }, 5000);
+    return () => window.clearInterval(id);
+  }, [preview?.is_refreshing, loadResults]);
+
+  const { refreshing, triggerRefresh } = useSearchRefresh(searchId, () => {
     void loadResults();
   });
 
@@ -64,6 +72,7 @@ export default function SearchResultsPage() {
         <AdPreviewPanel
           preview={preview}
           loading={false}
+          searchId={searchId}
           onRefresh={() => void triggerRefresh()}
           refreshing={refreshing}
         />

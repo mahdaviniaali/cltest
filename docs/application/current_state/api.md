@@ -27,6 +27,7 @@ Default: `http://127.0.0.1:8000`
 | GET | `/api/auth/me` | JWT | current user |
 | CRUD | `/api/searches/*` | JWT | filter CRUD |
 | GET | `/api/searches/{id}/results` | JWT | cached ads for saved filter |
+| POST | `/api/searches/{id}/refresh` | JWT | search-scoped bootstrap or incremental handoff |
 | POST | `/api/ads/preview` | JWT | live preview by filter criteria |
 | GET | `/api/ads` | JWT | list all ads |
 | GET | `/api/ads/{bama_id}` | JWT | ad detail |
@@ -49,9 +50,11 @@ Default: `http://127.0.0.1:8000`
 
 ## Cache-first UX contract
 
-- `POST /api/searches` — **only saves** filter; does not auto-crawl
-- `POST /api/ads/preview` — returns global cache matching criteria + `last_updated_at`
-- `POST /api/crawl/refresh` — always returns `{ is_refreshing, message }` without job_id
+- `POST /api/searches` — saves filter; evaluates shared cache; dispatches **bootstrap crawl** if count < `CRAWL_ON_DEMAND_CACHE_MIN_COUNT` or stale; returns `cached_count`, `is_crawling`, `job_id`
+- `GET /api/searches/{id}/results` — cached ads + per-filter `last_updated_at`, `bootstrapped`, `cache_sufficient`
+- `POST /api/searches/{id}/refresh` — search-scoped refresh; **handoff** to global incremental when bootstrapped + cache sufficient
+- `POST /api/ads/preview` — live preview from cache only (no auto-crawl until save)
+- `POST /api/crawl/refresh` — global incremental refresh (neutral 202)
 - If crawl already running → same neutral response (no new job)
 
 ## Frontend routes

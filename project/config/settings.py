@@ -33,6 +33,12 @@ CRAWL_MAX_PAGES: int = int(os.getenv("CRAWL_MAX_PAGES", "10"))
 CRAWL_DELAY_SECONDS: float = float(os.getenv("CRAWL_DELAY_SECONDS", "1.0"))
 CRAWL_STALENESS_SECONDS: int = int(os.getenv("CRAWL_STALENESS_SECONDS", "600"))
 CRAWL_ON_DEMAND_CACHE_MIN_COUNT: int = int(os.getenv("CRAWL_ON_DEMAND_CACHE_MIN_COUNT", "5"))
+CRAWL_BOOTSTRAP_MAX_PAGES: int = int(os.getenv("CRAWL_BOOTSTRAP_MAX_PAGES", "20"))
+NOTIFY_ON_EXISTING_MATCH: bool = os.getenv("NOTIFY_ON_EXISTING_MATCH", "true").lower() in (
+    "1",
+    "true",
+    "yes",
+)
 
 CELERY_BROKER_URL: str = os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/0")
 CELERY_RESULT_BACKEND: str = os.getenv("CELERY_RESULT_BACKEND", CELERY_BROKER_URL)
