@@ -1,26 +1,43 @@
 from __future__ import annotations
 
 import re
-from typing import Any
+from typing import Optional
 from urllib.parse import urljoin, urlparse, urlencode, parse_qs, urlunparse
 
 from bs4 import BeautifulSoup
 
 from crawler.domain.entities import AdDraft, ListingCard
 
-DETAIL_PATH = re.compile(r"/car/detail-(?P<id>\d+)", re.I)
 BAMA_BASE = "https://bama.ir"
+
+DETAIL_PATTERNS = {
+    "car": re.compile(r"/car/detail-(?P<id>\d+)", re.I),
+    "motorcycle": re.compile(r"/motorcycle/detail-(?P<id>\d+)", re.I),
+    "truck": re.compile(r"/truck/detail-(?P<id>\d+)", re.I),
+}
+
+
+def _pattern_for_url(url: str) -> re.Pattern[str]:
+    path = urlparse(url).path.lower()
+    for section, pattern in DETAIL_PATTERNS.items():
+        if f"/{section}" in path:
+            return pattern
+    return DETAIL_PATTERNS["car"]
 
 
 class BamaListingParser:
+    def __init__(self, listing_url: Optional[str] = None) -> None:
+        self._listing_url = listing_url or f"{BAMA_BASE}/car"
+
     def parse(self, html: str, *, page: int) -> list[ListingCard]:
         soup = BeautifulSoup(html, "lxml")
         cards: list[ListingCard] = []
         seen: set[str] = set()
+        detail_re = _pattern_for_url(self._listing_url)
 
         for anchor in soup.find_all("a", href=True):
             href = anchor["href"]
-            match = DETAIL_PATH.search(href)
+            match = detail_re.search(href)
             if not match:
                 continue
             bama_id = match.group("id")
@@ -42,7 +59,7 @@ class BamaListingParser:
             return current_url
         base = urlunparse((parsed.scheme, parsed.netloc, parsed.path, "", "", ""))
         if page <= 1:
-            return base or f"{BAMA_BASE}/car"
+            return base or self._listing_url
         return f"{base}?{new_query}" if new_query else f"{base}?page={page}"
 
 
@@ -54,6 +71,7 @@ class BamaDetailParser:
 
         brand, model = self._split_title(title)
         specs = self._extract_specs(soup)
+        section = self._section_from_url(url)
 
         return AdDraft(
             bama_id=bama_id,
@@ -66,8 +84,15 @@ class BamaDetailParser:
             mileage=specs.get("mileage"),
             location=specs.get("location"),
             description=specs.get("description"),
-            raw_data={"title": title, **specs},
+            raw_data={"title": title, "section": section, **specs},
         )
+
+    def _section_from_url(self, url: str) -> str:
+        path = urlparse(url).path.lower()
+        for section in DETAIL_PATTERNS:
+            if f"/{section}/" in path:
+                return section
+        return "car"
 
     def _split_title(self, title: str) -> tuple[str | None, str | None]:
         parts = title.split()
@@ -77,8 +102,8 @@ class BamaDetailParser:
             return parts[0], None
         return None, None
 
-    def _extract_specs(self, soup: BeautifulSoup) -> dict[str, Any]:
-        out: dict[str, Any] = {}
+    def _extract_specs(self, soup: BeautifulSoup) -> dict:
+        out: dict = {}
         text = soup.get_text("\n", strip=True)
 
         year_match = re.search(r"(13|14)\d{2}", text)
