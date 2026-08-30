@@ -17,6 +17,7 @@ class SiteMapJobResponse(BaseModel):
     pages_crawled: int = 0
     pages_discovered: int = 0
     pages_failed: int = 0
+    current_depth: int = 0
     started_at: Optional[str] = None
     finished_at: Optional[str] = None
     error: Optional[str] = None

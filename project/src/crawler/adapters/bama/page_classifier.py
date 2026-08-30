@@ -1,21 +1,15 @@
 from __future__ import annotations
 
 import fnmatch
-import re
 from dataclasses import dataclass
+from urllib.parse import urlparse
 
 from bs4 import BeautifulSoup
 
 from config.bama_site import BamaSiteConfig, SectionHint
-from crawler.domain.url_patterns import infer_url_pattern
-
-DETAIL_PATTERNS = (
-    re.compile(r"/car/detail-(?P<id>\d+)", re.I),
-    re.compile(r"/motorcycle/detail-(?P<id>\d+)", re.I),
-    re.compile(r"/truck/detail-(?P<id>\d+)", re.I),
-)
-LISTING_HINTS = ("page=", "/car", "/motorcycle", "/truck")
-PAGINATION_RE = re.compile(r"[?&]page=\d+")
+from crawler.domain.link_scorer import infer_page_role
+from crawler.domain.url_identity import canonicalize_url
+from crawler.domain.url_patterns import infer_url_pattern, path_depth
 
 
 @dataclass(slots=True)
@@ -29,15 +23,25 @@ class PageClassification:
 
 class BamaPageClassifier:
     def __init__(self, config: BamaSiteConfig) -> None:
+        self._config = config
         self._hints = config.section_hints
 
     def classify(self, html: str, *, url: str) -> PageClassification:
         soup = BeautifulSoup(html, "lxml")
         title = self._extract_title(soup)
         excerpt = self._extract_excerpt(soup)
-        url_pattern = infer_url_pattern(url)
-        section = self._detect_section(url, url_pattern, title)
-        page_type = self._detect_page_type(url, url_pattern, soup)
+        canonical = canonicalize_url(url, self._config.canonical.strip_query_params) or url
+        url_pattern = infer_url_pattern(canonical)
+        parsed = urlparse(canonical)
+        has_query = bool(parsed.query)
+        section = self._detect_section(canonical, url_pattern, title)
+        page_type = infer_page_role(
+            canonical,
+            self._config,
+            inferred_pattern=url_pattern,
+            has_query=has_query,
+            path_depth=path_depth(canonical),
+        )
         return PageClassification(
             page_type=page_type,
             section=section,
@@ -71,6 +75,12 @@ class BamaPageClassifier:
         url_pattern: str,
         title: str | None,
     ) -> str | None:
+        for root in self._config.section_roots:
+            root_path = root.url.split("://", 1)[-1].rstrip("/")
+            path = url.split("://", 1)[-1].split("?", 1)[0].rstrip("/")
+            if path == root_path or path.startswith(root_path + "/"):
+                return root.section
+
         path = url.split("://", 1)[-1]
         path = path.split("/", 1)[-1]
         path = "/" + path.split("?", 1)[0]
@@ -78,32 +88,15 @@ class BamaPageClassifier:
             if self._matches_hint(path, url_pattern, hint):
                 return hint.section
         if title:
-            lowered = title.lower()
             for hint in self._hints:
-                if hint.section in lowered or hint.label in title:
+                if hint.section in title.lower() or hint.label in title:
                     return hint.section
         return None
 
     def _matches_hint(self, path: str, url_pattern: str, hint: SectionHint) -> bool:
         pat = hint.pattern
         if pat.startswith("/"):
-            return fnmatch.fnmatch(path, pat) or fnmatch.fnmatch(url_pattern, f"*://*/*{pat.lstrip('/')}*")
-        return fnmatch.fnmatch(path, pat) or fnmatch.fnmatch(url, pat)
-
-    def _detect_page_type(self, url: str, url_pattern: str, soup: BeautifulSoup) -> str:
-        for pattern in DETAIL_PATTERNS:
-            if pattern.search(url):
-                return "detail"
-        if PAGINATION_RE.search(url) or any(h in url.lower() for h in LISTING_HINTS):
-            cards = soup.find_all("a", href=True)
-            detail_links = sum(
-                1 for a in cards if any(p.search(a["href"]) for p in DETAIL_PATTERNS)
+            return fnmatch.fnmatch(path, pat) or fnmatch.fnmatch(
+                url_pattern, f"*://*/*{pat.lstrip('/')}*"
             )
-            if detail_links >= 3:
-                return "listing"
-        segments = [s for s in url.split("/") if s and "?" not in s][3:]
-        if len(segments) <= 1:
-            return "hub"
-        if "{id}" in url_pattern or "detail" in url_pattern:
-            return "detail"
-        return "static"
+        return fnmatch.fnmatch(path, pat) or fnmatch.fnmatch(url, pat)

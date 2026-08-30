@@ -38,6 +38,7 @@ class CrawlJob(Base):
     pages_crawled: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     pages_discovered: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     pages_failed: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    current_depth: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     ads_found: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     ads_new: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     error: Mapped[Optional[str]] = mapped_column(Text)

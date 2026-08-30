@@ -66,11 +66,11 @@ class SiteCatalogBuilder:
     def _score_section(self, nodes: list[SiteNode]) -> float:
         score = 0.0
         for node in nodes:
-            if node.page_type == "listing":
+            if node.page_type in ("listing",):
                 score += 3.0
-            elif node.page_type == "detail":
+            elif node.page_type in ("detail", "ad_detail"):
                 score += 5.0
-            elif node.page_type == "hub":
+            elif node.page_type in ("hub", "section_hub", "brand_hub", "model_hub"):
                 score += 1.0
             else:
                 score += 0.2

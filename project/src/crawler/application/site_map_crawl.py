@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+import heapq
 import logging
-from collections import deque
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional
 
 from sqlalchemy.orm import Session
@@ -20,13 +20,30 @@ from crawler.adapters.link_extractor import LinkExtractor
 from crawler.application.site_catalog_builder import SiteCatalogBuilder
 from crawler.core.http_client import HttpClient
 from crawler.domain.crawl_policy import CrawlPolicy, parse_sitemap_locs, url_in_scope
+from crawler.domain.link_scorer import score_url
 from crawler.domain.robots import extract_sitemap_directives, robots_url_for, sitemap_url_for
-from crawler.domain.url_identity import compute_page_key, content_hash, ensure_http_url, normalize_url
+from crawler.domain.url_identity import (
+    canonicalize_url,
+    compute_page_key,
+    content_hash,
+    ensure_http_url,
+    normalize_url,
+)
+from crawler.domain.url_patterns import infer_url_pattern
 from crawler.domain.ports import PageFetcher
 
 logger = logging.getLogger(__name__)
 
 COMMIT_BATCH = 10
+
+
+@dataclass(order=True, slots=True)
+class _QueueEntry:
+    sort_key: tuple[int, int, int]
+    url: str = field(compare=False)
+    depth: int = field(compare=False)
+    parent_key: Optional[str] = field(compare=False, default=None)
+    weight: int = field(compare=False, default=1)
 
 
 @dataclass(slots=True)
@@ -72,21 +89,32 @@ class SiteMapCrawlService:
         self._pages_crawled = 0
         self._pages_discovered = 0
         self._pages_failed = 0
+        self._seq = 0
+        self._depth_one_bootstrapped = False
+        self._deferred_sitemap: list[tuple[str, int]] = []
+        self._deferred_flushed = False
+
+        self._current_depth = 0
+        self._level_pages = 0
+        self._level_sections: set[str] = set()
 
     def run(self) -> SiteMapCrawlResult:
         self._events.emit(job_id=self._job_id, event_type="job_started", payload={"seeds": self._seeds})
-        queue: deque[tuple[str, int, Optional[str]]] = deque()
-        queued: set[str] = set()
+        queue: list[_QueueEntry] = []
+        queued_keys: set[str] = set()
 
         pending = self._visited.list_pending(self._job_id)
         if pending:
             for row in pending:
-                parent_key = None
-                self._enqueue(queue, queued, row.url, row.depth, parent_key)
+                canonical = self._canonical(row.url)
+                if not canonical:
+                    continue
+                weight = score_url(canonical, self._config)
+                self._push(queue, queued_keys, canonical, row.depth, None, weight)
         else:
             for seed in self._seeds:
-                self._enqueue(queue, queued, seed, 0, None)
-            self._seed_from_sitemaps(queue, queued)
+                weight = score_url(seed, self._config)
+                self._push(queue, queued_keys, seed, 0, None, weight)
 
         stopped_reason = "completed"
         while queue and self._pages_crawled < self._policy.max_pages:
@@ -99,29 +127,36 @@ class SiteMapCrawlService:
                 stopped_reason = "paused"
                 break
 
-            url, depth, parent_key = queue.popleft()
-            normalized = normalize_url(url)
-            if not normalized:
-                continue
-            page_key = compute_page_key(normalized)
+            entry = heapq.heappop(queue)
+            self._maybe_advance_level(entry.depth, queue, queued_keys)
 
-            if not url_in_scope(normalized, self._policy, seed=self._seed):
-                self._mark_skipped(normalized, page_key, depth, parent_key, "out_of_scope")
+            url = entry.url
+            depth = entry.depth
+            parent_key = entry.parent_key
+
+            canonical = self._canonical(url)
+            if not canonical:
+                continue
+            page_key = compute_page_key(canonical)
+
+            if not url_in_scope(canonical, self._policy, seed=self._seed):
+                self._mark_skipped(canonical, page_key, depth, parent_key, "out_of_scope")
                 continue
 
             if self._visited.is_visited(page_key):
                 continue
 
-            self._visited.mark_pending(url=normalized, page_key=page_key, job_id=self._job_id, depth=depth)
+            self._visited.mark_pending(url=canonical, page_key=page_key, job_id=self._job_id, depth=depth)
             self._pages_discovered += 1
 
-            html = self._fetcher.fetch(normalized)
+            fetch_url = normalize_url(url) or canonical
+            html = self._fetcher.fetch(fetch_url)
             if not html:
                 self._pages_failed += 1
                 self._visited.mark_failed(page_key, self._job_id, "fetch_failed")
                 self._nodes.upsert(
                     page_key=page_key,
-                    url=normalized,
+                    url=fetch_url,
                     url_pattern="",
                     depth=depth,
                     parent_page_key=parent_key,
@@ -136,18 +171,18 @@ class SiteMapCrawlService:
                 self._events.emit(
                     job_id=self._job_id,
                     event_type="page_failed",
-                    payload={"url": normalized, "reason": "fetch_failed"},
+                    payload={"url": fetch_url, "reason": "fetch_failed", "depth": depth},
                 )
                 self._maybe_commit()
                 continue
 
-            classification = self._classifier.classify(html, url=normalized)
+            classification = self._classifier.classify(html, url=fetch_url)
             body_hash = content_hash(html)
-            links = self._link_extractor.extract(html, base_url=normalized)
+            links = self._link_extractor.extract(html, base_url=fetch_url)
 
             self._nodes.upsert(
                 page_key=page_key,
-                url=normalized,
+                url=fetch_url,
                 url_pattern=classification.url_pattern,
                 depth=depth,
                 parent_page_key=parent_key,
@@ -158,19 +193,26 @@ class SiteMapCrawlService:
                 status=SiteNodeStatus.CRAWLED.value,
                 content_hash=body_hash,
                 job_id=self._job_id,
-                meta={"link_count": len(links)},
+                meta={"link_count": len(links), "weight": entry.weight},
             )
             self._visited.mark_crawled(page_key, self._job_id)
             self._pages_crawled += 1
+            self._level_pages += 1
+            if classification.section:
+                self._level_sections.add(classification.section)
+
+            if depth == 0 and not self._depth_one_bootstrapped:
+                self._bootstrap_depth_one(queue, queued_keys, page_key)
 
             if classification.section:
                 self._events.emit(
                     job_id=self._job_id,
                     event_type="section_detected",
                     payload={
-                        "url": normalized,
+                        "url": fetch_url,
                         "section": classification.section,
                         "page_type": classification.page_type,
+                        "depth": depth,
                     },
                 )
 
@@ -178,32 +220,46 @@ class SiteMapCrawlService:
                 job_id=self._job_id,
                 event_type="page_fetched",
                 payload={
-                    "url": normalized,
+                    "url": fetch_url,
                     "page_type": classification.page_type,
                     "section": classification.section,
                     "depth": depth,
+                    "weight": entry.weight,
                     "links": len(links),
                 },
             )
 
             if depth < self._policy.max_depth:
                 for link in links:
-                    child_norm = normalize_url(link.url)
-                    if not child_norm or child_norm in queued:
+                    child_canonical = self._canonical(link.url)
+                    if not child_canonical:
                         continue
-                    if not url_in_scope(child_norm, self._policy, seed=self._seed):
+                    child_key = compute_page_key(child_canonical)
+                    if child_key in queued_keys:
                         continue
-                    child_key = compute_page_key(child_norm)
+                    if not url_in_scope(child_canonical, self._policy, seed=self._seed):
+                        continue
+                    child_weight = score_url(child_canonical, self._config)
                     self._edges.add_edge(
                         from_page_key=page_key,
                         to_page_key=child_key,
                         relation_type="internal_link",
                         job_id=self._job_id,
                     )
-                    self._enqueue(queue, queued, child_norm, depth + 1, page_key)
+                    self._push(
+                        queue,
+                        queued_keys,
+                        child_canonical,
+                        depth + 1,
+                        page_key,
+                        child_weight,
+                    )
 
-            self._update_progress()
+            self._update_progress(depth)
             self._maybe_commit()
+
+        if self._level_pages > 0:
+            self._emit_level_completed(self._current_depth, queue, queued_keys)
 
         if stopped_reason == "completed":
             catalog = SiteCatalogBuilder(self._session, self._config)
@@ -222,24 +278,62 @@ class SiteMapCrawlService:
             stopped_reason=stopped_reason,
         )
 
-    def _enqueue(
+    def _canonical(self, url: str) -> str | None:
+        return canonicalize_url(url, self._config.canonical.strip_query_params)
+
+    def _push(
         self,
-        queue: deque[tuple[str, int, Optional[str]]],
-        queued: set[str],
+        queue: list[_QueueEntry],
+        queued_keys: set[str],
         url: str,
         depth: int,
         parent_key: Optional[str],
+        weight: int,
     ) -> None:
-        normalized = normalize_url(url)
-        if not normalized or normalized in queued:
+        canonical = self._canonical(url)
+        if not canonical:
             return
-        queued.add(normalized)
-        queue.append((normalized, depth, parent_key))
+        page_key = compute_page_key(canonical)
+        if page_key in queued_keys:
+            return
+        queued_keys.add(page_key)
+        self._seq += 1
+        sort_key = (depth, -weight, self._seq)
+        heapq.heappush(
+            queue,
+            _QueueEntry(
+                sort_key=sort_key,
+                url=canonical,
+                depth=depth,
+                parent_key=parent_key,
+                weight=weight,
+            ),
+        )
 
-    def _seed_from_sitemaps(
+    def _bootstrap_depth_one(
         self,
-        queue: deque[tuple[str, int, Optional[str]]],
-        queued: set[str],
+        queue: list[_QueueEntry],
+        queued_keys: set[str],
+        home_key: str,
+    ) -> None:
+        self._depth_one_bootstrapped = True
+        for root in self._config.section_roots:
+            url = ensure_http_url(root.url)
+            child_key = compute_page_key(self._canonical(url) or url)
+            self._edges.add_edge(
+                from_page_key=home_key,
+                to_page_key=child_key,
+                relation_type="section_root",
+                job_id=self._job_id,
+            )
+            self._push(queue, queued_keys, url, 1, home_key, root.weight)
+        self._collect_sitemap_urls(queue, queued_keys, home_key)
+
+    def _collect_sitemap_urls(
+        self,
+        queue: list[_QueueEntry],
+        queued_keys: set[str],
+        home_key: str,
     ) -> None:
         raw_fetcher = self._resolve_http_fetcher()
         if raw_fetcher is None:
@@ -251,6 +345,7 @@ class SiteMapCrawlService:
             sitemap_candidates.extend(extract_sitemap_directives(robots_text))
 
         seen_sitemaps: set[str] = set()
+        collected: list[tuple[str, int]] = []
         for sm_url in sitemap_candidates:
             if sm_url in seen_sitemaps:
                 continue
@@ -259,16 +354,84 @@ class SiteMapCrawlService:
             if not xml:
                 continue
             for loc in parse_sitemap_locs(xml):
-                norm = normalize_url(loc)
-                if norm and url_in_scope(norm, self._policy, seed=self._seed):
-                    self._enqueue(queue, queued, norm, 0, None)
-                    child_key = compute_page_key(norm)
-                    self._edges.add_edge(
-                        from_page_key=compute_page_key(self._seed),
-                        to_page_key=child_key,
-                        relation_type="sitemap",
-                        job_id=self._job_id,
-                    )
+                norm = self._canonical(loc)
+                if not norm or not url_in_scope(norm, self._policy, seed=self._seed):
+                    continue
+                weight = score_url(norm, self._config)
+                collected.append((norm, weight))
+
+        collected.sort(key=lambda item: -item[1])
+        cap = self._config.sitemap_max_urls
+        immediate = collected[:cap]
+        deferred = collected[cap:] if self._config.sitemap_defer else []
+
+        for norm, weight in immediate:
+            child_key = compute_page_key(norm)
+            self._edges.add_edge(
+                from_page_key=home_key,
+                to_page_key=child_key,
+                relation_type="sitemap",
+                job_id=self._job_id,
+            )
+            self._push(queue, queued_keys, norm, 1, home_key, weight)
+
+        for norm, weight in deferred:
+            self._deferred_sitemap.append((norm, max(1, weight // 2)))
+
+    def _flush_deferred(
+        self,
+        queue: list[_QueueEntry],
+        queued_keys: set[str],
+    ) -> None:
+        if self._deferred_flushed or not self._deferred_sitemap:
+            return
+        self._deferred_flushed = True
+        home_key = compute_page_key(self._canonical(self._seed) or self._seed)
+        for norm, weight in self._deferred_sitemap:
+            child_key = compute_page_key(norm)
+            if child_key in queued_keys:
+                continue
+            self._edges.add_edge(
+                from_page_key=home_key,
+                to_page_key=child_key,
+                relation_type="sitemap_deferred",
+                job_id=self._job_id,
+            )
+            self._push(queue, queued_keys, norm, 1, home_key, weight)
+
+    def _maybe_advance_level(
+        self,
+        next_depth: int,
+        queue: list[_QueueEntry],
+        queued_keys: set[str],
+    ) -> None:
+        if next_depth > self._current_depth and self._level_pages > 0:
+            self._emit_level_completed(self._current_depth, queue, queued_keys)
+            self._current_depth = next_depth
+            self._level_pages = 0
+            self._level_sections = set()
+        elif next_depth > self._current_depth:
+            if self._current_depth == 1:
+                self._flush_deferred(queue, queued_keys)
+            self._current_depth = next_depth
+
+    def _emit_level_completed(
+        self,
+        depth: int,
+        queue: list[_QueueEntry],
+        queued_keys: set[str],
+    ) -> None:
+        if depth == 1:
+            self._flush_deferred(queue, queued_keys)
+        self._events.emit(
+            job_id=self._job_id,
+            event_type="level_completed",
+            payload={
+                "depth": depth,
+                "pages_at_level": self._level_pages,
+                "sections_seen": sorted(self._level_sections),
+            },
+        )
 
     def _resolve_http_fetcher(self) -> HttpPageFetcher | None:
         fetcher: PageFetcher = self._fetcher
@@ -298,7 +461,7 @@ class SiteMapCrawlService:
         self._nodes.upsert(
             page_key=page_key,
             url=url,
-            url_pattern="",
+            url_pattern=infer_url_pattern(url),
             depth=depth,
             parent_page_key=parent_key,
             page_type="unknown",
@@ -313,10 +476,10 @@ class SiteMapCrawlService:
         self._events.emit(
             job_id=self._job_id,
             event_type="page_skipped",
-            payload={"url": url, "reason": reason},
+            payload={"url": url, "reason": reason, "depth": depth},
         )
 
-    def _update_progress(self) -> None:
+    def _update_progress(self, current_depth: int) -> None:
         job = self._jobs.get(self._job_id)
         if job:
             self._jobs.update_site_map_progress(
@@ -324,9 +487,10 @@ class SiteMapCrawlService:
                 pages_crawled=self._pages_crawled,
                 pages_discovered=self._pages_discovered,
                 pages_failed=self._pages_failed,
+                current_depth=current_depth,
             )
 
     def _maybe_commit(self) -> None:
         if self._pages_crawled % COMMIT_BATCH == 0:
-            self._update_progress()
+            self._update_progress(self._current_depth)
             self._session.commit()

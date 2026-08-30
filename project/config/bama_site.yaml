@@ -1,7 +1,9 @@
 seed_urls:
   - "https://bama.ir/"
+
 domain_allow:
   - "bama.ir"
+
 exclude_patterns:
   - "*/login*"
   - "*/profile*"
@@ -10,6 +12,7 @@ exclude_patterns:
   - "*.jpeg"
   - "*.png"
   - "*.gif"
+
 section_hints:
   - pattern: "/car*"
     section: "car"
@@ -23,5 +26,71 @@ section_hints:
   - pattern: "/news*"
     section: "news"
     label: "اخبار"
+
+section_roots:
+  - url: "https://bama.ir/car"
+    section: car
+    weight: 10
+  - url: "https://bama.ir/motorcycle"
+    section: motorcycle
+    weight: 10
+  - url: "https://bama.ir/truck"
+    section: truck
+    weight: 10
+
+route_rules:
+  - pattern: "https://bama.ir/car"
+    role: section_hub
+    weight: 100
+    priority: 90
+  - pattern: "https://bama.ir/motorcycle"
+    role: section_hub
+    weight: 100
+    priority: 90
+  - pattern: "https://bama.ir/truck"
+    role: section_hub
+    weight: 100
+    priority: 90
+  - pattern: "https://bama.ir/car/detail-{id}"
+    role: ad_detail
+    weight: 30
+    priority: 50
+  - pattern: "https://bama.ir/motorcycle/detail-{id}"
+    role: ad_detail
+    weight: 30
+    priority: 50
+  - pattern: "https://bama.ir/truck/detail-{id}"
+    role: ad_detail
+    weight: 30
+    priority: 50
+  - pattern: "https://bama.ir/car/*"
+    role: model_hub
+    weight: 5
+    priority: 10
+  - pattern: "https://bama.ir/motorcycle/*"
+    role: model_hub
+    weight: 5
+    priority: 10
+  - pattern: "https://bama.ir/truck/*"
+    role: model_hub
+    weight: 5
+    priority: 10
+
+canonical:
+  strip_query_params:
+    - mileage
+    - sort
+    - page
+    - utm_source
+    - utm_medium
+
+default_role_defaults:
+  has_query: listing
+  path_depth_lte_1: section_hub
+  fallback: unknown
+
+sitemap_max_urls: 20
+sitemap_defer: true
+
 default_max_depth: 6
 default_max_pages: 5000

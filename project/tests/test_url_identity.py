@@ -1,4 +1,4 @@
-from crawler.domain.url_identity import compute_page_key, is_asset_url, normalize_url
+from crawler.domain.url_identity import canonicalize_url, compute_page_key, is_asset_url, normalize_url
 
 
 def test_normalize_url_strips_fragment_and_lowercases_host():
@@ -17,3 +17,8 @@ def test_is_asset_url():
 def test_page_key_stable():
     url = "https://bama.ir/car/detail-1"
     assert compute_page_key(url) == compute_page_key(url)
+
+
+def test_canonicalize_url():
+    result = canonicalize_url("https://bama.ir/car?mileage=1&utm_source=x", ["mileage", "utm_source"])
+    assert result == "https://bama.ir/car"

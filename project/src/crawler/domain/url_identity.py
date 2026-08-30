@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import re
-from urllib.parse import urldefrag, urljoin, urlparse, urlunparse
+from urllib.parse import parse_qsl, urldefrag, urlencode, urljoin, urlparse, urlunparse
 
 SKIP_SCHEMES = {"mailto", "tel", "javascript", "data", "ftp"}
 ASSET_EXT = {
@@ -101,6 +101,20 @@ def content_hash(text: str | None) -> str | None:
     if text is None:
         return None
     return hashlib.sha256(text.encode("utf-8", errors="replace")).hexdigest()
+
+
+def canonicalize_url(url: str, strip_params: list[str] | None = None) -> str | None:
+    """Normalize URL and optionally strip configured query params for dedup."""
+    normalized = normalize_url(url)
+    if not normalized:
+        return None
+    parsed = urlparse(normalized)
+    if not strip_params:
+        return urlunparse((parsed.scheme, parsed.netloc, parsed.path, "", "", ""))
+    drop = {p.lower() for p in strip_params}
+    kept = [(k, v) for k, v in parse_qsl(parsed.query, keep_blank_values=True) if k.lower() not in drop]
+    query = urlencode(kept, doseq=True)
+    return urlunparse((parsed.scheme, parsed.netloc, parsed.path, "", query, ""))
 
 
 def compute_page_key(normalized_url: str, web_source_id: str = "") -> str:

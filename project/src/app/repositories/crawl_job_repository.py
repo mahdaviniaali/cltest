@@ -133,10 +133,12 @@ class CrawlJobRepository:
         pages_crawled: int,
         pages_discovered: int,
         pages_failed: int,
+        current_depth: int = 0,
     ) -> CrawlJob:
         job.pages_crawled = pages_crawled
         job.pages_discovered = pages_discovered
         job.pages_failed = pages_failed
+        job.current_depth = current_depth
         self._session.flush()
         return job
 

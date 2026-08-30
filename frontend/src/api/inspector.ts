@@ -7,6 +7,7 @@ export interface SiteMapJob {
   pages_crawled: number;
   pages_discovered: number;
   pages_failed: number;
+  current_depth: number;
   started_at?: string | null;
   finished_at?: string | null;
   error?: string | null;

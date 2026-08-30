@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { inspectorApi, type SiteGraph, type SitePageDetail, type SiteSection, type SiteTreeNode } from "../api/inspector";
 import CrawlEventFeed from "../components/inspector/CrawlEventFeed";
@@ -50,6 +50,28 @@ export default function InspectorPage() {
       .catch(() => setPageDetail(null));
   }, [selectedPageKey]);
 
+  const levelProgress = useMemo(() => {
+    if (!job) return { pages: 0, sections: [] as string[] };
+    const completed = [...events].reverse().find((e) => e.event_type === "level_completed");
+    const completedDepth = completed ? Number(completed.payload.depth ?? -1) : -1;
+    if (completed && completedDepth === job.current_depth) {
+      return {
+        pages: Number(completed.payload.pages_at_level ?? 0),
+        sections: (completed.payload.sections_seen as string[]) ?? [],
+      };
+    }
+    const sections = new Set<string>();
+    let pages = 0;
+    for (const event of events) {
+      if (event.event_type !== "page_fetched") continue;
+      if (Number(event.payload.depth) !== job.current_depth) continue;
+      pages += 1;
+      const section = event.payload.section;
+      if (typeof section === "string" && section) sections.add(section);
+    }
+    return { pages, sections: [...sections] };
+  }, [events, job]);
+
   return (
     <div className="inspector-page">
       <header className="topbar">
@@ -65,6 +87,8 @@ export default function InspectorPage() {
       <SiteMapControl
         job={job}
         loading={loading}
+        currentLevelPages={levelProgress.pages}
+        sectionsAtLevel={levelProgress.sections}
         onStart={(maxPages, maxDepth) => void start(maxPages, maxDepth)}
         onPause={() => void pause()}
         onResume={() => void resume()}

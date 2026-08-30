@@ -42,3 +42,5 @@ def upgrade_schema(engine: Engine) -> None:
             _add_sqlite_column(engine, "crawl_jobs", "pages_discovered", "INTEGER NOT NULL DEFAULT 0")
         if "pages_failed" not in existing:
             _add_sqlite_column(engine, "crawl_jobs", "pages_failed", "INTEGER NOT NULL DEFAULT 0")
+        if "current_depth" not in existing:
+            _add_sqlite_column(engine, "crawl_jobs", "current_depth", "INTEGER NOT NULL DEFAULT 0")

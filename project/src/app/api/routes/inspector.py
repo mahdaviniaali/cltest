@@ -35,6 +35,7 @@ def _job_response(job) -> SiteMapJobResponse:
         pages_crawled=job.pages_crawled,
         pages_discovered=job.pages_discovered,
         pages_failed=job.pages_failed,
+        current_depth=getattr(job, "current_depth", 0) or 0,
         started_at=job.started_at.isoformat() if job.started_at else None,
         finished_at=job.finished_at.isoformat() if job.finished_at else None,
         error=job.error,

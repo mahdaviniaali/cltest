@@ -17,7 +17,7 @@ Hybrid incremental crawler (ADR 006) with hexagonal ports:
 |---|---|
 | Domain ports | `crawler/domain/ports.py`, `entities.py` |
 | Application | `crawler/application/incremental_crawl.py`, `on_demand_crawl.py`, `site_map_crawl.py`, `crawl_job_runner.py` |
-| Domain | `crawler/domain/url_identity.py`, `crawl_policy.py`, `robots.py`, `url_patterns.py` |
+| Domain | `crawler/domain/url_identity.py`, `crawl_policy.py`, `robots.py`, `url_patterns.py`, `link_scorer.py` |
 | Adapters | `crawler/adapters/bama/parsers.py`, `page_classifier.py`, `link_extractor.py`, `http_page_fetcher.py`, `db_ad_store.py` |
 
 ## Crawl modes
@@ -28,13 +28,15 @@ Hybrid incremental crawler (ADR 006) with hexagonal ports:
 | On-demand | API / search create | `crawl.on_demand` |
 | Site map BFS | Inspector `/api/inspector/site-map/start` | `crawl.site_map` |
 
-## Site map (ADR 008)
+## Site map (ADR 008, ADR 009)
 
-1. Seed from `config/bama_site.yaml` + sitemap.xml + robots Sitemap:
-2. BFS with `url_in_scope`, robots gate, visited URL dedup in DB
-3. Classify pages (type + section) via URL pattern + DOM hints
-4. Persist graph (`site_nodes`, `site_edges`) + events (`crawl_events`)
-5. Build section catalog (`site_sections`) on completion
+1. Seed homepage only at depth 0; `section_roots` forced at depth 1 after home crawl
+2. Level-first BFS: `heapq` with `sort_key = (depth, -weight, seq)` — weights from `route_rules` / `section_roots` in `bama_site.yaml`
+3. Sitemap capped (`sitemap_max_urls`); overflow deferred until level 1 completes
+4. Canonical URL dedup via configurable `strip_query_params`
+5. Config-driven page roles (`section_hub`, `model_hub`, `ad_detail`, …) — no ad parsing in site map loop
+6. Persist graph (`site_nodes`, `site_edges`) + events (`level_completed`, `page_fetched`)
+7. Build section catalog (`site_sections`) on completion for incremental crawl routing
 
 ## Incremental logic
 

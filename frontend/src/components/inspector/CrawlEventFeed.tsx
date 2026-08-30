@@ -10,6 +10,7 @@ const LABELS: Record<string, string> = {
   page_failed: "خطا در صفحه",
   page_skipped: "رد شد",
   section_detected: "بخش شناسایی شد",
+  level_completed: "سطح تکمیل شد",
   job_paused: "متوقف شد",
   job_completed: "تکمیل شد",
 };

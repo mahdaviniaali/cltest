@@ -3,6 +3,8 @@ import type { SiteMapJob } from "../../api/inspector";
 interface Props {
   job: SiteMapJob | null;
   loading: boolean;
+  currentLevelPages?: number;
+  sectionsAtLevel?: string[];
   onStart: (maxPages: number, maxDepth: number) => void;
   onPause: () => void;
   onResume: () => void;
@@ -12,6 +14,8 @@ interface Props {
 export default function SiteMapControl({
   job,
   loading,
+  currentLevelPages,
+  sectionsAtLevel,
   onStart,
   onPause,
   onResume,
@@ -23,7 +27,7 @@ export default function SiteMapControl({
   return (
     <div className="inspector-control">
       <div className="inspector-control-actions">
-        <button disabled={loading || running} onClick={() => onStart(500, 4)}>
+        <button disabled={loading || running} onClick={() => onStart(500, 6)}>
           شروع Site Map
         </button>
         <button className="secondary" disabled={!running} onClick={onPause}>
@@ -39,9 +43,16 @@ export default function SiteMapControl({
       {job && (
         <div className="inspector-stats">
           <span>وضعیت: {job.status}</span>
+          <span>سطح: {job.current_depth}</span>
           <span>کرawl: {job.pages_crawled}</span>
           <span>کشف: {job.pages_discovered}</span>
           <span>خطا: {job.pages_failed}</span>
+          {currentLevelPages !== undefined && currentLevelPages > 0 && (
+            <span>صفحات سطح: {currentLevelPages}</span>
+          )}
+          {sectionsAtLevel && sectionsAtLevel.length > 0 && (
+            <span>بخش‌ها: {sectionsAtLevel.join(", ")}</span>
+          )}
         </div>
       )}
       {job && job.pages_discovered > 0 && (
