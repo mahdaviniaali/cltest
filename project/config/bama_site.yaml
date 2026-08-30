@@ -1,0 +1,27 @@
+seed_urls:
+  - "https://bama.ir/"
+domain_allow:
+  - "bama.ir"
+exclude_patterns:
+  - "*/login*"
+  - "*/profile*"
+  - "*.pdf"
+  - "*.jpg"
+  - "*.jpeg"
+  - "*.png"
+  - "*.gif"
+section_hints:
+  - pattern: "/car*"
+    section: "car"
+    label: "خودرو"
+  - pattern: "/motorcycle*"
+    section: "motorcycle"
+    label: "موتورسیکلت"
+  - pattern: "/truck*"
+    section: "truck"
+    label: "وانت و کامیون"
+  - pattern: "/news*"
+    section: "news"
+    label: "اخبار"
+default_max_depth: 6
+default_max_pages: 5000

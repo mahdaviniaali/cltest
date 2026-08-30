@@ -3,25 +3,12 @@ from __future__ import annotations
 import logging
 import time
 from typing import Optional
-from urllib.parse import urlparse
 
 from crawler.core.http_client import HttpClient
 from crawler.domain.ports import PageFetcher
+from crawler.domain.robots import parse_robots_allowed, robots_url_for
 
 logger = logging.getLogger(__name__)
-
-
-def robots_allowed(url: str, robots_text: str, user_agent: str) -> bool:
-    from urllib.robotparser import RobotFileParser
-
-    parser = RobotFileParser()
-    parser.parse(robots_text.splitlines())
-    return parser.can_fetch(user_agent, url)
-
-
-def robots_url_for(page_url: str) -> str:
-    parsed = urlparse(page_url)
-    return f"{parsed.scheme}://{parsed.netloc}/robots.txt"
 
 
 class HttpPageFetcher(PageFetcher):
@@ -46,6 +33,13 @@ class HttpPageFetcher(PageFetcher):
             return None
         return response.text
 
+    def fetch_raw(self, url: str) -> Optional[str]:
+        """Fetch without robots check — used for robots.txt / sitemap.xml."""
+        response = self._http.get(url)
+        if response is None:
+            return None
+        return response.text
+
     def _check_robots(self, url: str) -> bool:
         r_url = robots_url_for(url)
         if r_url not in self._robots_cache:
@@ -54,7 +48,7 @@ class HttpPageFetcher(PageFetcher):
         robots_text = self._robots_cache[r_url]
         if robots_text is None:
             return True
-        return robots_allowed(url, robots_text, self._user_agent)
+        return parse_robots_allowed(robots_text, user_agent=self._user_agent, url=url)
 
 
 class DelayedPageFetcher(PageFetcher):
