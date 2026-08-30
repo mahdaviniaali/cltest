@@ -64,6 +64,9 @@ export default function DashboardPage() {
           <p className="muted">{user?.full_name || user?.email}</p>
         </div>
         <div className="actions">
+          <Link to="/admin/inspector" className="link-button">
+            Site Inspector
+          </Link>
           <button onClick={() => { setEditing(null); setShowForm(true); }}>+ فیلتر جدید</button>
           <button className="secondary" onClick={logout}>
             خروج

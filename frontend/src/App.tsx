@@ -4,6 +4,7 @@ import DashboardPage from "./pages/DashboardPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import SearchResultsPage from "./pages/SearchResultsPage";
+import InspectorPage from "./pages/InspectorPage";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -43,6 +44,14 @@ export default function App() {
         element={
           <ProtectedRoute>
             <SearchResultsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/inspector"
+        element={
+          <ProtectedRoute>
+            <InspectorPage />
           </ProtectedRoute>
         }
       />
