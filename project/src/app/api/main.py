@@ -4,13 +4,14 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes import ads, auth, crawl, inspector, searches
-from app.db.engine import upgrade_schema
+from app.db.engine import recover_interrupted_jobs, upgrade_schema
 from config import settings
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     upgrade_schema()
+    recover_interrupted_jobs()
     yield
 
 

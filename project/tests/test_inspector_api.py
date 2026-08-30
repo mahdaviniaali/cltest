@@ -58,13 +58,14 @@ def client(db_session):
     app.dependency_overrides.clear()
 
 
-@patch("app.api.routes.inspector.dispatch_site_map_job")
-def test_start_site_map_enqueues_job(mock_dispatch, client, db_session):
+@patch("app.services.job_dispatch._broker_available", return_value=True)
+@patch("app.workers.tasks.crawl.site_map_crawl")
+def test_start_site_map_enqueues_job(mock_task, _broker, client, db_session):
     response = client.post("/api/inspector/site-map/start", json={"max_pages": 10, "max_depth": 2})
     assert response.status_code == 200
     data = response.json()
     assert data["job_type"] == CrawlJobType.SITE_MAP.value
-    mock_dispatch.assert_called_once()
+    mock_task.delay.assert_called_once()
 
 
 def test_start_site_map_idempotent_when_running(client, db_session):
