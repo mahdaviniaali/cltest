@@ -1,0 +1,10 @@
+{
+  "name": "crawler-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Frontend for the crawler project",
+  "scripts": {
+    "dev": "echo \"Frontend not configured yet. Add your framework here.\"",
+    "build": "echo \"Frontend not configured yet.\""
+  }
+}
