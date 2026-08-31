@@ -1,0 +1,40 @@
+AMG	آرتابان (ای ام جی)
+ARYA	آریا
+ARISUN	آریسان
+ALFAROMEO	آلفارومئو
+AMICO	آمیکو
+IMMOTORS	آی ام موتورز
+AUDI	آئودی
+OPEL	اپل
+SWM	اس دبلیو ام
+SKYWELL	اسکای ول
+SMART	اسمارت
+SKODA	اشکودا
+ATLAS	اطلس
+XTRIM	اکستریم
+MG	ام جی
+MVM	ام وی ام
+AVATR	اوتار
+OSHAN	اوشان
+AVENTRA	اونترا
+ERES	ایرس
+ISUZU	ایسوزو
+XPENG	ایکس پنگ
+INROADS	اینرودز
+INFINITE	اینفینیت
+ENVOY	اینوی
+BAIC	بایک
+BRILLIANCE	برلیانس
+BESTURN	بسترن
+BESTUNE	بستیون
+BORGWARD	بورگوارد
+BAW	بی ای دبلیو (BAW)
+BAC	بی ای سی
+BYD	بی وای دی
+BEIJING	بیجینگ
+BISU	بیسو
+PADRAMOTORS	پادرا موتور
+PARSNOA	پارس نوآ
+PRIDE	پراید
+PORSCHE	پورشه
+PEYKAN	پیکان
