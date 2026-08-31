@@ -22,7 +22,7 @@ def _broker_available(broker_url: str, timeout: float = 0.5) -> bool:
         return False
 
 
-def _celery_worker_available() -> bool:
+def celery_worker_available() -> bool:
     """True only when at least one Celery worker responds to inspect ping."""
     if not _broker_available(settings.CELERY_BROKER_URL):
         return False
@@ -54,8 +54,12 @@ def dispatch_site_map_job(
     max_pages: Optional[int] = None,
     max_depth: Optional[int] = None,
 ) -> str:
-    """Enqueue site map via Celery when broker is up; otherwise background thread."""
-    if _broker_available(settings.CELERY_BROKER_URL):
+    """Enqueue site map via Celery when a worker is up; otherwise background thread.
+
+    Broker-up is not enough: Redis from another project on :6379 would accept
+    the publish and the job would sit unconsumed until API reload cancelled it.
+    """
+    if _broker_available(settings.CELERY_BROKER_URL) and celery_worker_available():
         from app.workers.tasks.crawl import site_map_crawl
 
         try:
@@ -64,7 +68,7 @@ def dispatch_site_map_job(
         except Exception as exc:
             logger.warning("Celery publish failed (%s) — using background thread", exc)
 
-    logger.info("Redis/Celery unavailable — running site map job %s in background thread", job_id)
+    logger.info("No live Celery worker — running site map job %s in background thread", job_id)
     thread = threading.Thread(
         target=_run_site_map_in_thread,
         args=(job_id,),
@@ -78,7 +82,7 @@ def dispatch_site_map_job(
 
 def dispatch_on_demand_job(job_id: str) -> str:
     """Enqueue on-demand crawl via Celery when a worker is up; otherwise background thread."""
-    if _broker_available(settings.CELERY_BROKER_URL) and _celery_worker_available():
+    if _broker_available(settings.CELERY_BROKER_URL) and celery_worker_available():
         from app.workers.tasks.crawl import on_demand_crawl
 
         try:

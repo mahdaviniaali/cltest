@@ -58,14 +58,29 @@ def client(db_session):
     app.dependency_overrides.clear()
 
 
+@patch("app.services.job_dispatch.celery_worker_available", return_value=True)
 @patch("app.services.job_dispatch._broker_available", return_value=True)
 @patch("app.workers.tasks.crawl.site_map_crawl")
-def test_start_site_map_enqueues_job(mock_task, _broker, client, db_session):
+def test_start_site_map_enqueues_job(mock_task, _broker, _worker, client, db_session):
     response = client.post("/api/inspector/site-map/start", json={"max_pages": 10, "max_depth": 2})
     assert response.status_code == 200
     data = response.json()
     assert data["job_type"] == CrawlJobType.SITE_MAP.value
     mock_task.delay.assert_called_once()
+
+
+@patch("app.services.job_dispatch.celery_worker_available", return_value=False)
+@patch("app.services.job_dispatch._broker_available", return_value=True)
+@patch("app.services.job_dispatch.threading.Thread")
+@patch("app.workers.tasks.crawl.site_map_crawl")
+def test_start_site_map_uses_thread_when_no_worker(
+    mock_task, mock_thread, _broker, _worker, client, db_session
+):
+    response = client.post("/api/inspector/site-map/start", json={"max_pages": 10, "max_depth": 2})
+    assert response.status_code == 200
+    mock_task.delay.assert_not_called()
+    mock_thread.assert_called_once()
+    mock_thread.return_value.start.assert_called_once()
 
 
 def test_start_site_map_idempotent_when_running(client, db_session):

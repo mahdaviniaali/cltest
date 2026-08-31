@@ -1,5 +1,6 @@
 import sys
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 from sqlalchemy import create_engine
@@ -8,6 +9,13 @@ from sqlalchemy.orm import sessionmaker
 PROJECT_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_DIR / "src"))
 sys.path.insert(0, str(PROJECT_DIR))
+
+
+@pytest.fixture(autouse=True)
+def _skip_api_startup_job_recovery():
+    """Lifespan must not fail crawl jobs on the developer's real SQLite file."""
+    with patch("app.api.main.recover_interrupted_jobs"):
+        yield
 
 
 @pytest.fixture()

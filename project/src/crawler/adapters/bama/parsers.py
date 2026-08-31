@@ -105,6 +105,14 @@ class BamaDetailParser:
         return "car"
 
     def _split_title(self, title: str) -> tuple[str | None, str | None]:
+        # Bama titles are typically "برند، مدل" (Persian comma) e.g. "کی ام سی،  K7".
+        normalized = title.replace("،", ",")
+        if "," in normalized:
+            left, right = normalized.split(",", 1)
+            brand = normalize_label(left)
+            model = normalize_label(right)
+            if brand and model:
+                return brand, model
         parts = title.split()
         if len(parts) >= 2:
             return normalize_label(parts[0]), normalize_label(parts[1])
