@@ -134,6 +134,21 @@ export const api = {
   getDataStatus() {
     return request<DataStatus>("/api/data/status");
   },
+  listNotifications(unreadOnly = false) {
+    const q = unreadOnly ? "?unread_only=true" : "";
+    return request<import("../types").AppNotification[]>(`/api/notifications${q}`);
+  },
+  getUnreadNotificationCount() {
+    return request<{ count: number }>("/api/notifications/unread-count");
+  },
+  markNotificationRead(id: number) {
+    return request<import("../types").AppNotification>(`/api/notifications/${id}/read`, {
+      method: "PATCH",
+    });
+  },
+  markAllNotificationsRead() {
+    return request<{ count: number }>("/api/notifications/read-all", { method: "POST" });
+  },
 };
 
 export { ApiError, request };

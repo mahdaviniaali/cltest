@@ -15,6 +15,47 @@ def _add_sqlite_column(engine: Engine, table: str, column: str, ddl: str) -> Non
         conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {ddl}"))
 
 
+def _migrate_notifications_v2(engine: Engine) -> None:
+    """Recreate notifications with multi-channel unique constraint and inbox fields."""
+    with engine.begin() as conn:
+        conn.execute(
+            text(
+                """
+                CREATE TABLE IF NOT EXISTS notifications_v2 (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    match_id INTEGER NOT NULL REFERENCES matches(id) ON DELETE CASCADE,
+                    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    channel VARCHAR(32) NOT NULL DEFAULT 'in_app',
+                    title VARCHAR(256),
+                    body TEXT,
+                    payload JSON,
+                    status VARCHAR(16) NOT NULL DEFAULT 'pending',
+                    read_at DATETIME,
+                    sent_at DATETIME,
+                    error TEXT,
+                    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(match_id, channel)
+                )
+                """
+            )
+        )
+        conn.execute(
+            text(
+                """
+                INSERT INTO notifications_v2 (
+                    id, match_id, user_id, channel, status, sent_at, error, created_at
+                )
+                SELECT id, match_id, user_id, channel, status, sent_at, error, created_at
+                FROM notifications
+                """
+            )
+        )
+        conn.execute(text("DROP TABLE notifications"))
+        conn.execute(text("ALTER TABLE notifications_v2 RENAME TO notifications"))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS ix_notifications_user_read ON notifications (user_id, read_at)"))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS ix_notifications_user_created ON notifications (user_id, created_at)"))
+
+
 def upgrade_schema(engine: Engine) -> None:
     """Create missing tables and add columns introduced after initial deploy."""
     from app.db.base import Base
@@ -63,3 +104,22 @@ def upgrade_schema(engine: Engine) -> None:
         existing = _sqlite_columns(engine, "site_map_groups")
         if "inbound_link_count" not in existing:
             _add_sqlite_column(engine, "site_map_groups", "inbound_link_count", "INTEGER NOT NULL DEFAULT 0")
+
+    if inspector.has_table("users"):
+        existing = _sqlite_columns(engine, "users")
+        if "phone" not in existing:
+            _add_sqlite_column(engine, "users", "phone", "VARCHAR(32)")
+        if "telegram_chat_id" not in existing:
+            _add_sqlite_column(engine, "users", "telegram_chat_id", "VARCHAR(64)")
+        if "notification_channels" not in existing:
+            _add_sqlite_column(
+                engine,
+                "users",
+                "notification_channels",
+                "JSON NOT NULL DEFAULT '[\"in_app\"]'",
+            )
+
+    if inspector.has_table("notifications"):
+        existing = _sqlite_columns(engine, "notifications")
+        if "title" not in existing:
+            _migrate_notifications_v2(engine)

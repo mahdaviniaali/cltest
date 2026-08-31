@@ -25,7 +25,7 @@ def db_session():
     import app.models.user  # noqa: F401
 
     Base.metadata.create_all(bind=engine)
-    Session = sessionmaker(bind=engine)
+    Session = sessionmaker(bind=engine, expire_on_commit=False)
     session = Session()
     try:
         yield session

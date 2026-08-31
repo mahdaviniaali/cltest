@@ -16,14 +16,14 @@ not_authoritative_for:
 |---|---|---|---|---|---|
 | OQ-002 | Frontend لازم است یا API-only کافی است؟ | product | ❌ | application | open |
 | OQ-003 | API design: REST shape, auth, versioning | platform+app | ✅ approach | shared | open |
-| OQ-006 | Notification channel اول: Email, Telegram, Webhook, …? | application | ✅ approach | application | open |
-| OQ-009 | K8s topology: single deployment vs split services | infra | ✅ deploy | shared | open |
 | OQ-010 | Observability stack: logs, metrics, tracing | infra | ❌ | shared | open |
 
 ## Closed Questions
 
 | ID | Question | Resolution | Link |
 |---|---|---|---|
+| OQ-006 | Notification channel اول | in_app primary + extensible ports | [ADR-010](../../platform/decisions/010-extensible-notification-channels.md) |
+| OQ-009 | K8s topology | Split: api / worker / beat / redis | [`k8s/cltest.yaml`](../../../k8s/cltest.yaml), ADR-007 |
 | OQ-001 | Target site production crawl | Bama.ir — car advertisements | [`base/تعریف_پروژه.md`](../../base/تعریف_پروژه.md) |
 | OQ-007 | Database: relational vs document vs other | Relational DB (SQLite dev / PostgreSQL prod) + manual schema — no entity auto-detection | [`platform/decisions/005-relational-db-manual-schema.md`](../../platform/decisions/005-relational-db-manual-schema.md) |
 | OQ-008 | Dedup key strategy when Bama has no stable ID | `bama_id` — UNIQUE constraint on Bama ad number | [`application/spec/schema/advertisements.md`](schema/advertisements.md) |

@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.repositories.outbox_repository import OutboxRepository
 from app.workers.tasks.match import process_ad
-from app.workers.tasks.notify import send_notification
+from app.workers.tasks.notify import orchestrate_notification
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +30,7 @@ class OutboxRelayService:
                     match_id = event.payload.get("match_id")
                     if match_id is None:
                         raise ValueError("notify.requested missing match_id")
-                    send_notification.delay(match_id)
+                    orchestrate_notification.delay(match_id)
                 else:
                     raise ValueError(f"Unknown event type: {event.event_type}")
                 self._outbox.mark_done(event)

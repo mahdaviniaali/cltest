@@ -21,7 +21,15 @@ Default: `http://127.0.0.1:8000`
 
 | Method | Path | Auth | Purpose |
 |---|---|---|---|
-| GET | `/api/health` | no | liveness |
+| GET | `/api/health` | no | liveness (legacy) |
+| GET | `/api/health/live` | no | liveness probe |
+| GET | `/api/health/ready` | no | readiness (DB + Redis) |
+| GET | `/api/metrics` | no | Prometheus text metrics |
+| GET | `/api/admin/stats` | JWT | crawl/site stats overview |
+| GET | `/api/notifications` | JWT | in-app inbox |
+| GET | `/api/notifications/unread-count` | JWT | unread badge count |
+| PATCH | `/api/notifications/{id}/read` | JWT | mark one read |
+| POST | `/api/notifications/read-all` | JWT | mark all read |
 | POST | `/api/auth/register` | no | register |
 | POST | `/api/auth/login` | no | login |
 | GET | `/api/auth/me` | JWT | current user |

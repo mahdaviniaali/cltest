@@ -506,6 +506,76 @@ h3 {
   padding-right: 1rem;
 }
 
+.notification-bell {
+  position: relative;
+}
+
+.notification-bell-btn {
+  position: relative;
+}
+
+.notification-badge {
+  display: inline-block;
+  margin-right: 0.35rem;
+  background: #dc2626;
+  color: white;
+  border-radius: 999px;
+  padding: 0.05rem 0.4rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.notification-panel {
+  position: absolute;
+  top: calc(100% + 0.35rem);
+  left: 0;
+  z-index: 50;
+  width: min(360px, 90vw);
+  max-height: 420px;
+  overflow: auto;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12);
+  padding: 0.75rem;
+}
+
+.notification-panel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.notification-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.notification-list li {
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.notification-list li.unread {
+  background: #eff6ff;
+}
+
+.notification-item-btn {
+  width: 100%;
+  text-align: right;
+  background: transparent;
+  color: inherit;
+  padding: 0.5rem 0.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.notification-item-btn small {
+  color: #64748b;
+}
+
 .external-link {
   color: #2563eb;
   word-break: break-all;

@@ -95,6 +95,19 @@ export interface DataStatus {
   is_refreshing: boolean;
 }
 
+export interface AppNotification {
+  id: number;
+  match_id: number;
+  channel: string;
+  title?: string | null;
+  body?: string | null;
+  payload?: Record<string, unknown> | null;
+  status: string;
+  read_at?: string | null;
+  sent_at?: string | null;
+  created_at: string;
+}
+
 export interface RefreshResponse {
   is_refreshing: boolean;
   message: string;

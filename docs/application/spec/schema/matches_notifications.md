@@ -26,12 +26,16 @@ source: ADR 005, ADR 007
 | Column | Type | Notes |
 |---|---|---|
 | `id` | INTEGER PK | |
-| `match_id` | INTEGER FK UNIQUE | → matches.id |
+| `match_id` | INTEGER FK | → matches.id |
 | `user_id` | INTEGER FK | → users.id |
-| `channel` | VARCHAR | e.g. `log` (MVP) |
+| `channel` | VARCHAR | `in_app`, `log`, `email`, … |
+| `title` | VARCHAR | inbox title |
+| `body` | TEXT | inbox body |
+| `payload` | JSON | ad_url, search metadata |
 | `status` | VARCHAR | `pending`, `sent`, `failed` |
+| `read_at` | TIMESTAMPTZ | in-app read timestamp |
 | `sent_at` | TIMESTAMPTZ | |
 | `error` | TEXT | |
 | `created_at` | TIMESTAMPTZ | |
 
-Idempotency: one notification row per match.
+**Constraint:** `UNIQUE(match_id, channel)`

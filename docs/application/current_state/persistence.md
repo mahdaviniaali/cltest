@@ -38,7 +38,7 @@ not_authoritative_for:
 | `crawl_jobs` | `app.models.crawl_job.CrawlJob` | UNIQUE `idempotency_key` |
 | `outbox_events` | `app.models.outbox_event.OutboxEvent` | — |
 | `matches` | `app.models.match.Match` | UNIQUE `(ad_id, search_id)` |
-| `notifications` | `app.models.notification.Notification` | UNIQUE `match_id` |
+| `notifications` | `app.models.notification.Notification` | UNIQUE `(match_id, channel)` — inbox fields: title, body, payload, read_at |
 | `taxonomy_snapshots` | `app.models.taxonomy.TaxonomySnapshot` | versioned site-map extractions |
 | `taxonomy_terms` | `app.models.taxonomy.TaxonomyTerm` | brand/model/city catalog |
 | `taxonomy_refs` | `app.models.taxonomy.TaxonomyRef` | evidence URLs per term |

@@ -41,6 +41,48 @@ NOTIFY_ON_EXISTING_MATCH: bool = os.getenv("NOTIFY_ON_EXISTING_MATCH", "true").l
     "yes",
 )
 
+NOTIFICATION_CHANNELS_ENABLED: str = os.getenv(
+    "NOTIFICATION_CHANNELS_ENABLED",
+    "in_app,log",
+)
+NOTIFICATION_LOG_ENABLED: bool = os.getenv("NOTIFICATION_LOG_ENABLED", "true").lower() in (
+    "1",
+    "true",
+    "yes",
+)
+
+SMTP_HOST: str = os.getenv("SMTP_HOST", "")
+SMTP_PORT: int = int(os.getenv("SMTP_PORT", "587"))
+SMTP_USER: str = os.getenv("SMTP_USER", "")
+SMTP_PASSWORD: str = os.getenv("SMTP_PASSWORD", "")
+SMTP_FROM: str = os.getenv("SMTP_FROM", "")
+
+SMS_PROVIDER_URL: str = os.getenv("SMS_PROVIDER_URL", "")
+SMS_API_KEY: str = os.getenv("SMS_API_KEY", "")
+
+TELEGRAM_BOT_TOKEN: str = os.getenv("TELEGRAM_BOT_TOKEN", "")
+
+
+def notification_channels_enabled() -> list[str]:
+    return [
+        item.strip()
+        for item in NOTIFICATION_CHANNELS_ENABLED.split(",")
+        if item.strip()
+    ]
+
+
+def smtp_configured() -> bool:
+    return bool(SMTP_HOST and SMTP_FROM)
+
+
+def sms_configured() -> bool:
+    return bool(SMS_PROVIDER_URL and SMS_API_KEY)
+
+
+def telegram_configured() -> bool:
+    return bool(TELEGRAM_BOT_TOKEN)
+
+
 CELERY_BROKER_URL: str = os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/0")
 CELERY_RESULT_BACKEND: str = os.getenv("CELERY_RESULT_BACKEND", CELERY_BROKER_URL)
 

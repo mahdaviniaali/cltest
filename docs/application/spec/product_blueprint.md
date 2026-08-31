@@ -27,9 +27,9 @@ Bama.ir New Ads Crawler & Notification System — monitor آگهی‌های جد
 | Bama crawler | ❌ |
 | User/search API | ❌ |
 | Matching engine | ❌ |
-| Notification (≥1 channel) | ❌ |
-| Persistence (DB) | ❌ |
-| K8s deployment | ❌ |
+| Notification (≥1 channel) | ✅ in_app + extensible adapters (ADR-010) |
+| Persistence (DB) | ✅ SQLite dev / PostgreSQL prod |
+| K8s deployment | ✅ docker-compose + k8s manifests |
 
 ## Architecture Locks
 

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import SearchForm, { SearchSummary } from "../components/SearchForm";
+import NotificationBell from "../components/NotificationBell";
 import { useAuth } from "../context/AuthContext";
 import type { Search, SearchCreateResponse, SearchInput, SearchUpdateInput } from "../types";
 
@@ -31,6 +32,14 @@ export default function DashboardPage() {
   useEffect(() => {
     void loadSearches();
   }, [loadSearches]);
+
+  async function handleSubmit(data: SearchInput | SearchUpdateInput) {
+    if (editing) {
+      await handleUpdate(data as SearchUpdateInput);
+    } else {
+      await handleCreate(data as SearchInput);
+    }
+  }
 
   async function handleCreate(data: SearchInput) {
     const created: SearchCreateResponse = await api.createSearch(data);
@@ -86,6 +95,7 @@ export default function DashboardPage() {
           <p className="muted">{user?.full_name || user?.email}</p>
         </div>
         <div className="actions">
+          <NotificationBell />
           <Link to="/admin/inspector" className="link-button">
             Site Inspector
           </Link>
@@ -100,7 +110,7 @@ export default function DashboardPage() {
         <SearchForm
           initial={editing ?? undefined}
           isEdit={Boolean(editing)}
-          onSubmit={editing ? handleUpdate : handleCreate}
+          onSubmit={handleSubmit}
           onCancel={() => {
             setShowForm(false);
             setEditing(null);

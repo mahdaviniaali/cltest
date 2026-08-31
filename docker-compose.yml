@@ -1,0 +1,91 @@
+name: cltest
+
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: cltest
+      POSTGRES_PASSWORD: cltest
+      POSTGRES_DB: cltest
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cltest -d cltest"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: ./project
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql+psycopg2://cltest:cltest@postgres:5432/cltest
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+      JWT_SECRET_KEY: dev-docker-secret
+      CORS_ORIGINS: http://localhost:5173
+      NOTIFICATION_CHANNELS_ENABLED: in_app,log
+      NOTIFICATION_LOG_ENABLED: "true"
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    command: ["uvicorn", "app.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+  worker:
+    build:
+      context: ./project
+    environment:
+      DATABASE_URL: postgresql+psycopg2://cltest:cltest@postgres:5432/cltest
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+      JWT_SECRET_KEY: dev-docker-secret
+      NOTIFICATION_CHANNELS_ENABLED: in_app,log
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    command:
+      [
+        "celery",
+        "-A",
+        "app.workers.celery_app",
+        "worker",
+        "-Q",
+        "crawl,outbox_relay,match,notify",
+        "-l",
+        "info",
+      ]
+
+  beat:
+    build:
+      context: ./project
+    environment:
+      DATABASE_URL: postgresql+psycopg2://cltest:cltest@postgres:5432/cltest
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    command: ["celery", "-A", "app.workers.celery_app", "beat", "-l", "info"]
+
+volumes:
+  pgdata:

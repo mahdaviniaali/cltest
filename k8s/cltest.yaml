@@ -1,0 +1,163 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cltest-config
+data:
+  CELERY_BROKER_URL: redis://cltest-redis:6379/0
+  CELERY_RESULT_BACKEND: redis://cltest-redis:6379/0
+  CORS_ORIGINS: http://localhost:5173
+  NOTIFICATION_CHANNELS_ENABLED: in_app,log
+  NOTIFICATION_LOG_ENABLED: "true"
+  CRAWL_INTERVAL_SECONDS: "300"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: cltest-secrets
+type: Opaque
+stringData:
+  DATABASE_URL: postgresql+psycopg2://cltest:cltest@cltest-postgres:5432/cltest
+  JWT_SECRET_KEY: change-me-in-production
+  TELEGRAM_BOT_TOKEN: ""
+  SMTP_PASSWORD: ""
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cltest-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cltest-api
+  template:
+    metadata:
+      labels:
+        app: cltest-api
+    spec:
+      containers:
+        - name: api
+          image: cltest-api:latest
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: cltest-config
+            - secretRef:
+                name: cltest-secrets
+          readinessProbe:
+            httpGet:
+              path: /api/health/ready
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /api/health/live
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 15
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cltest-api
+spec:
+  selector:
+    app: cltest-api
+  ports:
+    - port: 8000
+      targetPort: 8000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cltest-worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cltest-worker
+  template:
+    metadata:
+      labels:
+        app: cltest-worker
+    spec:
+      containers:
+        - name: worker
+          image: cltest-api:latest
+          command:
+            - celery
+            - -A
+            - app.workers.celery_app
+            - worker
+            - -Q
+            - crawl,outbox_relay,match,notify
+            - -l
+            - info
+          envFrom:
+            - configMapRef:
+                name: cltest-config
+            - secretRef:
+                name: cltest-secrets
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cltest-beat
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cltest-beat
+  template:
+    metadata:
+      labels:
+        app: cltest-beat
+    spec:
+      containers:
+        - name: beat
+          image: cltest-api:latest
+          command:
+            - celery
+            - -A
+            - app.workers.celery_app
+            - beat
+            - -l
+            - info
+          envFrom:
+            - configMapRef:
+                name: cltest-config
+            - secretRef:
+                name: cltest-secrets
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cltest-redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cltest-redis
+  template:
+    metadata:
+      labels:
+        app: cltest-redis
+    spec:
+      containers:
+        - name: redis
+          image: redis:7-alpine
+          ports:
+            - containerPort: 6379
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cltest-redis
+spec:
+  selector:
+    app: cltest-redis
+  ports:
+    - port: 6379
+      targetPort: 6379
