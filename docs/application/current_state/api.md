@@ -26,6 +26,7 @@ Default: `http://127.0.0.1:8000`
 | GET | `/api/health/ready` | no | readiness (DB + Redis) |
 | GET | `/api/metrics` | no | Prometheus text metrics |
 | GET | `/api/admin/stats` | JWT | crawl/site stats overview |
+| GET | `/api/admin/filter-crawls` | JWT | active filter fingerprints + crawl state |
 | GET | `/api/notifications` | JWT | in-app inbox |
 | GET | `/api/notifications/unread-count` | JWT | unread badge count |
 | PATCH | `/api/notifications/{id}/read` | JWT | mark one read |
@@ -66,9 +67,9 @@ Default: `http://127.0.0.1:8000`
 
 ## Cache-first UX contract
 
-- `POST /api/searches` — saves filter; evaluates shared cache; dispatches **bootstrap crawl** if count < `CRAWL_ON_DEMAND_CACHE_MIN_COUNT` or stale; returns `cached_count`, `is_crawling`, `job_id`
+- `POST /api/searches` — saves filter; computes shared `filter_fingerprint`; returns cache when `filter_crawl_states.last_crawl_at` within `CRAWL_STALENESS_SECONDS`, else enqueues `ON_DEMAND_FILTER`; returns `cached_count`, `is_crawling`, `job_id`
 - `GET /api/searches/{id}/results` — cached ads + per-filter `last_updated_at`, `bootstrapped`, `cache_sufficient`
-- `POST /api/searches/{id}/refresh` — search-scoped refresh; **handoff** to global incremental when bootstrapped + cache sufficient
+- `POST /api/searches/{id}/refresh` — filter-scoped incremental refresh; dedupes by fingerprint; skips when filter cache fresh
 - `POST /api/ads/preview` — live preview from cache only (no auto-crawl until save)
 - `POST /api/crawl/refresh` — global incremental refresh (neutral 202)
 - If crawl already running → same neutral response (no new job)

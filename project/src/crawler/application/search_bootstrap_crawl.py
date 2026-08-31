@@ -3,18 +3,27 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from typing import Optional
+from urllib.parse import urljoin
 
+from bs4 import BeautifulSoup
 from sqlalchemy.orm import Session
 
+from app.domain.search_filter import model_matches_filter
 from app.models.search import Search
 from app.repositories.advertisement_repository import AdvertisementRepository
 from app.repositories.search_bootstrap_metrics_repository import SearchBootstrapMetricsRepository
 from app.repositories.search_repository import SearchRepository
 from app.services.city_taxonomy_sync import CityTaxonomySync
 from config import settings
-from crawler.adapters.bama.parsers import BamaDetailParser, BamaListingParser
+from crawler.adapters.bama.parsers import BamaDetailParser, BamaListingParser, BAMA_BASE
 from crawler.adapters.db_ad_store import DbAdStore
-from crawler.application.search_listing_url_builder import build_search_listing_url
+from crawler.application.search_listing_url_builder import (
+    _extract_model_slug_from_detail_path,
+    _path_parts,
+    _resolve_section,
+    build_search_listing_url,
+    is_brand_only_listing_url,
+)
 from crawler.domain.entities import AdDraft, ListingCard
 from crawler.domain.ports import DetailParser, ListingParser, PageFetcher
 
@@ -61,6 +70,13 @@ class SearchBootstrapCrawlService:
             raise ValueError(f"Search not found: {self._search_id}")
 
         listing_url = build_search_listing_url(self._session, search)
+        section = _resolve_section(search, None)
+        if search.model and is_brand_only_listing_url(listing_url, section=section):
+            discovered = self._discover_model_listing_url(listing_url, search, section=section)
+            if discovered:
+                listing_url = discovered
+                logger.info("Discovered model listing URL: %s", listing_url)
+
         listing_parser = BamaListingParser(listing_url)
         detail_parser = BamaDetailParser()
 
@@ -95,7 +111,10 @@ class SearchBootstrapCrawlService:
                     ads_new += 1
 
             matching_count = self._count_matching(search)
-            if matching_count >= self._target_count or ads_new >= self._target_count:
+            if search.model:
+                if not cards:
+                    break
+            elif matching_count >= self._target_count or ads_new >= self._target_count:
                 target_reached = True
                 break
 
@@ -120,6 +139,33 @@ class SearchBootstrapCrawlService:
         if result.ads_new > 0:
             CityTaxonomySync(self._session).sync()
         return result
+
+    def _discover_model_listing_url(self, brand_listing_url: str, search: Search, *, section: str) -> str | None:
+        html = self._fetcher.fetch(brand_listing_url)
+        if not html:
+            return None
+
+        brand_slug = _path_parts(brand_listing_url)[1] if len(_path_parts(brand_listing_url)) >= 2 else None
+        soup = BeautifulSoup(html, "lxml")
+        for anchor in soup.find_all("a", href=True):
+            href = urljoin(BAMA_BASE, anchor["href"])
+            clean = href.split("?")[0]
+            parts = _path_parts(clean)
+            if len(parts) != 3 or parts[0] != section:
+                continue
+            if brand_slug and parts[1] != brand_slug:
+                continue
+            title = anchor.get_text(" ", strip=True)
+            if model_matches_filter(search.model, None, ad_title=title) or model_matches_filter(
+                search.model,
+                parts[2].replace("-", " "),
+            ):
+                return clean
+            if brand_slug:
+                slug = _extract_model_slug_from_detail_path(href, section=section, brand_slug=brand_slug)
+                if slug and model_matches_filter(search.model, slug.replace("-", " ")):
+                    return f"{BAMA_BASE}/{section}/{brand_slug}/{slug}"
+        return None
 
     def _count_matching(self, search) -> int:
         return len(

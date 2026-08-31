@@ -63,6 +63,7 @@ def upgrade_schema(engine: Engine) -> None:
         advertisement,
         crawl_job,
         crawler_state,
+        filter_crawl_state,
         match,
         notification,
         outbox_event,
@@ -123,3 +124,13 @@ def upgrade_schema(engine: Engine) -> None:
         existing = _sqlite_columns(engine, "notifications")
         if "title" not in existing:
             _migrate_notifications_v2(engine)
+
+    if inspector.has_table("crawl_jobs"):
+        existing = _sqlite_columns(engine, "crawl_jobs")
+        if "filter_fingerprint" not in existing:
+            _add_sqlite_column(engine, "crawl_jobs", "filter_fingerprint", "VARCHAR(64)")
+
+    if inspector.has_table("searches"):
+        existing = _sqlite_columns(engine, "searches")
+        if "filter_fingerprint" not in existing:
+            _add_sqlite_column(engine, "searches", "filter_fingerprint", "VARCHAR(64)")

@@ -86,6 +86,39 @@ def test_listing_url_from_taxonomy_porsche_panamera(db_session):
     assert url == "https://bama.ir/car/porsche/panamera"
 
 
+def test_listing_url_from_brand_node_and_matching_ad(db_session):
+    from app.models.advertisement import Advertisement
+    from datetime import datetime, timezone
+
+    db_session.add(
+        SiteNode(
+            page_key="brand-porsche",
+            url="https://bama.ir/car/porsche",
+            url_pattern="https://bama.ir/car/{brand}",
+            depth=2,
+            page_type="brand_hub",
+            section="car",
+            title="پورشه",
+            status="crawled",
+        )
+    )
+    db_session.add(
+        Advertisement(
+            bama_id="abc-porsche-panamera-1398",
+            url="https://bama.ir/car/detail-abc-porsche-panamera-1398",
+            title="پورشه،  پانامرا",
+            brand="پورشه",
+            model="پانامرا",
+            crawled_at=datetime.now(timezone.utc),
+        )
+    )
+    db_session.commit()
+
+    search = Search(user_id=1, brand="پورشه", model="پانامرا", enabled=True)
+    url = build_search_listing_url(db_session, search)
+    assert url == "https://bama.ir/car/porsche/panamera"
+
+
 def test_listing_url_from_term_ids(db_session):
     _seed_porsche_panamera(db_session)
     from app.repositories.taxonomy_repository import TaxonomyRepository

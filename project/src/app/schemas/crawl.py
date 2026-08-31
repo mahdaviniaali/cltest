@@ -76,3 +76,21 @@ class CrawlStatusOut(BaseModel):
 class CrawlTriggerOut(BaseModel):
     job_id: str
     message: str = "Crawl job enqueued"
+
+
+class FilterCrawlAdminOut(BaseModel):
+    fingerprint: str
+    section_key: str
+    listing_url: str
+    brand: Optional[str] = None
+    model: Optional[str] = None
+    min_year: Optional[int] = None
+    max_price: Optional[int] = None
+    max_mileage: Optional[int] = None
+    location: Optional[str] = None
+    last_seen_bama_id: Optional[str] = None
+    last_crawl_at: Optional[datetime] = None
+    last_job_id: Optional[str] = None
+    enabled_search_count: int = 0
+    active_job_id: Optional[str] = None
+    active_job_status: Optional[str] = None

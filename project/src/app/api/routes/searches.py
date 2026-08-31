@@ -154,6 +154,10 @@ def update_search(
         data["last_bootstrap_job_id"] = None
     data = resolve_search_taxonomy(db, data)
     updated = repo.update(search, data)
+    if filter_fields.intersection(data):
+        from app.services.filter_crawl_service import FilterCrawlService
+
+        FilterCrawlService(db).prepare_search(updated)
     return _search_out(updated)
 
 

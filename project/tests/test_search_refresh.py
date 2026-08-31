@@ -25,6 +25,7 @@ def db_session():
     )
     import app.models.advertisement  # noqa: F401
     import app.models.crawl_job  # noqa: F401
+    import app.models.filter_crawl_state  # noqa: F401
     import app.models.search  # noqa: F401
     import app.models.user  # noqa: F401
 
@@ -56,7 +57,7 @@ def client(db_session):
 
 
 @patch("app.api.routes.searches.dispatch_on_demand_job")
-def test_search_refresh_handoff_to_global(mock_dispatch, client, db_session):
+def test_search_refresh_returns_fresh_cache(mock_dispatch, client, db_session):
     search = Search(
         user_id=1,
         brand="Dena",
@@ -83,11 +84,39 @@ def test_search_refresh_handoff_to_global(mock_dispatch, client, db_session):
     response = client.post(f"/api/searches/{search.id}/refresh")
     assert response.status_code == 202
     body = response.json()
-    assert body["used_bootstrap"] is False
+    assert body["is_refreshing"] is False
+    assert "cache is fresh" in body["message"]
+    mock_dispatch.assert_not_called()
+
+
+@patch("app.api.routes.searches.dispatch_on_demand_job")
+def test_search_refresh_enqueues_filter_job_when_stale(mock_dispatch, client, db_session):
+    from app.models.filter_crawl_state import FilterCrawlState
+    from app.services.filter_crawl_service import FilterCrawlService
+
+    search = Search(
+        user_id=1,
+        brand="Dena",
+        model="Plus",
+        enabled=True,
+    )
+    db_session.add(search)
+    db_session.commit()
+    db_session.refresh(search)
+    FilterCrawlService(db_session).prepare_search(search)
+    state = db_session.get(FilterCrawlState, search.filter_fingerprint)
+    state.last_crawl_at = datetime(2020, 1, 1, tzinfo=timezone.utc)
+    db_session.commit()
+    db_session.refresh(search)
+
+    response = client.post(f"/api/searches/{search.id}/refresh?force=true")
+    assert response.status_code == 202
+    body = response.json()
+    assert body["used_bootstrap"] is True
     assert body["job_id"] is not None
     mock_dispatch.assert_called_once()
 
     from app.repositories.crawl_job_repository import CrawlJobRepository
 
     job = CrawlJobRepository(db_session).get(body["job_id"])
-    assert job.job_type == CrawlJobType.ON_DEMAND_GLOBAL.value
+    assert job.job_type == CrawlJobType.ON_DEMAND_FILTER.value

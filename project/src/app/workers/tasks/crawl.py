@@ -14,8 +14,21 @@ from crawler.application.crawl_job_runner import run_incremental_job, run_on_dem
 logger = logging.getLogger(__name__)
 
 
-@celery_app.task(name="crawl.scheduled_incremental", bind=True, max_retries=2)
-def scheduled_incremental(self) -> dict:
+def _run_scheduled_filter_crawl() -> dict:
+    from app.services.filter_crawl_service import FilterCrawlService
+    from app.services.job_dispatch import dispatch_on_demand_job
+
+    session = SessionLocal()
+    try:
+        job_ids = FilterCrawlService(session).enqueue_stale_active_filters()
+        for job_id in job_ids:
+            dispatch_on_demand_job(job_id)
+        return {"enqueued": len(job_ids), "job_ids": job_ids}
+    finally:
+        session.close()
+
+
+def _run_scheduled_incremental() -> dict:
     session = SessionLocal()
     try:
         jobs = CrawlJobRepository(session)
@@ -41,6 +54,21 @@ def scheduled_incremental(self) -> dict:
         return {"job_id": job.id, "status": "completed"}
     finally:
         session.close()
+
+
+@celery_app.task(name="crawl.scheduled_filter_crawl", bind=True, max_retries=2)
+def scheduled_filter_crawl(self) -> dict:
+    return _run_scheduled_filter_crawl()
+
+
+@celery_app.task(name="crawl.scheduled_tick", bind=True, max_retries=2)
+def scheduled_tick(self) -> dict:
+    return {"filter": _run_scheduled_filter_crawl(), "global": _run_scheduled_incremental()}
+
+
+@celery_app.task(name="crawl.scheduled_incremental", bind=True, max_retries=2)
+def scheduled_incremental(self) -> dict:
+    return _run_scheduled_incremental()
 
 
 @celery_app.task(name="crawl.on_demand", bind=True, max_retries=2)

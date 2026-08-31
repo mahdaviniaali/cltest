@@ -1,16 +1,22 @@
 import { useEffect, useState } from "react";
-import { inspectorApi, type SearchDiscoveryStat, type StatsOverview } from "../../api/inspector";
+import { inspectorApi, type FilterCrawlStat, type SearchDiscoveryStat, type StatsOverview } from "../../api/inspector";
 
 export default function InspectorStatsView() {
   const [overview, setOverview] = useState<StatsOverview | null>(null);
   const [searches, setSearches] = useState<SearchDiscoveryStat[]>([]);
+  const [filterCrawls, setFilterCrawls] = useState<FilterCrawlStat[]>([]);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    void Promise.all([inspectorApi.getStatsOverview(), inspectorApi.getStatsSearches()])
-      .then(([ov, sr]) => {
+    void Promise.all([
+      inspectorApi.getStatsOverview(),
+      inspectorApi.getStatsSearches(),
+      inspectorApi.getFilterCrawls(),
+    ])
+      .then(([ov, sr, fc]) => {
         setOverview(ov);
         setSearches(sr);
+        setFilterCrawls(fc);
       })
       .catch((err) => setError(err instanceof Error ? err.message : "خطا در بارگذاری آمار"));
   }, []);
@@ -42,6 +48,40 @@ export default function InspectorStatsView() {
           </strong>
         </div>
       </div>
+
+      <section className="panel">
+        <h3>فیلترهای فعال ({filterCrawls.length})</h3>
+        {filterCrawls.length === 0 ? (
+          <p className="muted">هیچ فیلتر فعالی crawl نشده است.</p>
+        ) : (
+          <table className="stats-table">
+            <thead>
+              <tr>
+                <th>فیلتر</th>
+                <th>searches</th>
+                <th>آخرین crawl</th>
+                <th>checkpoint</th>
+                <th>job</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filterCrawls.map((row) => (
+                <tr key={row.fingerprint}>
+                  <td>
+                    {[row.brand, row.model].filter(Boolean).join(" ") || "—"}
+                    {row.min_year ? ` ≥${row.min_year}` : ""}
+                    {row.max_price ? ` ≤${row.max_price}` : ""}
+                  </td>
+                  <td>{row.enabled_search_count}</td>
+                  <td>{row.last_crawl_at ? new Date(row.last_crawl_at).toLocaleString("fa-IR") : "—"}</td>
+                  <td className="mono">{row.last_seen_bama_id?.slice(0, 12) ?? "—"}</td>
+                  <td>{row.active_job_status ?? "idle"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </section>
 
       {overview.last_site_map_job.job_id && (
         <section className="panel">

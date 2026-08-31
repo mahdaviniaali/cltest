@@ -136,6 +136,24 @@ export interface SearchDiscoveryStat {
   metric_at?: string | null;
 }
 
+export interface FilterCrawlStat {
+  fingerprint: string;
+  section_key: string;
+  listing_url: string;
+  brand?: string | null;
+  model?: string | null;
+  min_year?: number | null;
+  max_price?: number | null;
+  max_mileage?: number | null;
+  location?: string | null;
+  last_seen_bama_id?: string | null;
+  last_crawl_at?: string | null;
+  last_job_id?: string | null;
+  enabled_search_count: number;
+  active_job_id?: string | null;
+  active_job_status?: string | null;
+}
+
 export const inspectorApi = {
   startSiteMap(maxPages?: number, maxDepth?: number) {
     return request<SiteMapJob>("/api/inspector/site-map/start", {
@@ -180,5 +198,8 @@ export const inspectorApi = {
   },
   getStatsSearches(threshold = 5) {
     return request<SearchDiscoveryStat[]>(`/api/inspector/stats/searches?threshold=${threshold}`);
+  },
+  getFilterCrawls() {
+    return request<FilterCrawlStat[]>("/api/admin/filter-crawls");
   },
 };

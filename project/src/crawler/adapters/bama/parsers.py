@@ -35,6 +35,7 @@ class BamaListingParser:
         cards: list[ListingCard] = []
         seen: set[str] = set()
         detail_re = _pattern_for_url(self._listing_url)
+        titles_by_id: dict[str, str] = {}
 
         for anchor in soup.find_all("a", href=True):
             href = anchor["href"]
@@ -42,11 +43,18 @@ class BamaListingParser:
             if not match:
                 continue
             bama_id = match.group("id")
+            title = anchor.get_text(" ", strip=True)
+            if title:
+                titles_by_id[bama_id] = title
+
+        for match in detail_re.finditer(html):
+            bama_id = match.group("id")
             if bama_id in seen:
                 continue
             seen.add(bama_id)
-            url = urljoin(BAMA_BASE, href)
-            title = anchor.get_text(" ", strip=True) or f"Ad {bama_id}"
+            path = match.group(0)
+            url = urljoin(BAMA_BASE, path)
+            title = titles_by_id.get(bama_id) or f"Ad {bama_id}"
             cards.append(ListingCard(bama_id=bama_id, url=url, title=title))
 
         return cards
@@ -54,14 +62,15 @@ class BamaListingParser:
     def next_page_url(self, current_url: str, page: int) -> str:
         parsed = urlparse(current_url)
         query = parse_qs(parsed.query)
-        query["page"] = [str(page)]
+        if page > 1:
+            query["page"] = [str(page)]
+        else:
+            query.pop("page", None)
         new_query = urlencode({k: v[0] for k, v in query.items()})
-        if not parsed.query and page == 1:
-            return current_url
         base = urlunparse((parsed.scheme, parsed.netloc, parsed.path, "", "", ""))
-        if page <= 1:
-            return base or self._listing_url
-        return f"{base}?{new_query}" if new_query else f"{base}?page={page}"
+        if new_query:
+            return f"{base}?{new_query}"
+        return base
 
 
 class BamaDetailParser:

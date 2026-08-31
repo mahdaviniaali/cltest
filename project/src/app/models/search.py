@@ -49,5 +49,6 @@ class Search(Base):
     )
     bootstrapped_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
     last_bootstrap_job_id: Mapped[Optional[str]] = mapped_column(String(36))
+    filter_fingerprint: Mapped[Optional[str]] = mapped_column(String(64), index=True)
 
     user: Mapped["User"] = relationship(back_populates="searches")

@@ -68,7 +68,7 @@ services:
         "app.workers.celery_app",
         "worker",
         "-Q",
-        "crawl,outbox_relay,match,notify",
+        "filter,crawl,outbox_relay,match,notify",
         "-l",
         "info",
       ]

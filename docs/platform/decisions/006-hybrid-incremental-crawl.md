@@ -21,8 +21,9 @@ Incremental strategy: start from listing page 1 (newest first), stop when `last_
 | Mode | Trigger | Job type |
 |---|---|---|
 | Scheduled incremental | Celery Beat | `SCHEDULED_INCREMENTAL` |
-| On-demand (search) | `POST /api/searches` | `ON_DEMAND_SEARCH` |
-| On-demand (manual) | `POST /api/crawl/trigger` | `ON_DEMAND_GLOBAL` |
+| On-demand (filter) | `POST /api/searches`, refresh, Beat | `ON_DEMAND_FILTER` |
+| On-demand (legacy alias) | — | `ON_DEMAND_SEARCH` → same as filter |
+| On-demand (manual global) | `POST /api/crawl/trigger` | `ON_DEMAND_GLOBAL` |
 
 ### 2. Checkpoint in PostgreSQL/SQLite (not Redis)
 
@@ -62,17 +63,27 @@ When user creates search:
 
 1. Query DB for ads matching filter
 2. If count ≥ threshold and data younger than `CRAWL_STALENESS_SECONDS` → return cached
-3. Else enqueue **search bootstrap** crawl (`ON_DEMAND_SEARCH`); API returns job id for polling
+3. Else enqueue **filter incremental** crawl (`ON_DEMAND_FILTER`); API returns job id for polling
 
-### 6. Bootstrap vs incremental handoff (2026-08-31)
+### 6. Filter-scoped incremental crawl (2026-08-31 amend)
+
+Bootstrap (`ON_DEMAND_SEARCH` until min count) is **deprecated**. Filters share a canonical **fingerprint** (SHA256 of criteria) and one checkpoint in `filter_crawl_states` + `crawler_state` (`source_key = bama:{section}:filter:{hash}`).
 
 | Phase | Job type | Behavior |
 |---|---|---|
-| First fetch for filter | `ON_DEMAND_SEARCH` | Scoped listing crawl until cache ≥ min count; sets `searches.bootstrapped_at` |
-| After bootstrap + sufficient cache | `ON_DEMAND_GLOBAL` on refresh | Incremental newest-first only — shared beat continues updates |
-| Scheduled | `SCHEDULED_INCREMENTAL` | Background refresh every `CRAWL_INTERVAL_SECONDS` |
+| First / stale filter fetch | `ON_DEMAND_FILTER` | Listing URL with Bama query filters + `sort=1`; incremental newest-first until checkpoint or `max_pages` |
+| Fresh filter (< `CRAWL_STALENESS_SECONDS`) | — | API returns cached ads; no new job |
+| Refresh (same fingerprint) | `ON_DEMAND_FILTER` | Dedupes active PENDING/RUNNING jobs per fingerprint |
+| Beat (priority) | `ON_DEMAND_FILTER` | Stale enabled fingerprints before global tick |
+| Scheduled global | `SCHEDULED_INCREMENTAL` | Background `/car` incremental (low priority) |
 
-Bootstrap does **not** replace incremental checkpoint; it backfills the shared `advertisements` cache for a filter.
+Cache fast-path: `filter_crawl_states.last_crawl_at` within `CRAWL_STALENESS_SECONDS` (default 300s) → sufficient even if ad count < min.
+
+Users A and B with identical criteria → one fingerprint, one checkpoint, one crawl job.
+
+### 7. Legacy bootstrap (removed from runner)
+
+`SearchBootstrapCrawlService` remains for reference; `crawl_job_runner` routes `ON_DEMAND_SEARCH` → filter incremental.
 
 ## Consequences
 

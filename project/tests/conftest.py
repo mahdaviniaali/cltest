@@ -20,6 +20,7 @@ def db_session():
     import app.models.match  # noqa: F401
     import app.models.notification  # noqa: F401
     import app.models.outbox_event  # noqa: F401
+    import app.models.filter_crawl_state  # noqa: F401
     import app.models.search  # noqa: F401
     import app.models.site_map  # noqa: F401
     import app.models.user  # noqa: F401

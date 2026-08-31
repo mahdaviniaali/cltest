@@ -104,5 +104,11 @@ class DataPreviewService:
         return self._jobs.get_any_running() is not None
 
     def _is_refreshing_for_search(self, search_id: int) -> bool:
+        from app.models.search import Search
+
         self._jobs.reconcile_abandoned_pending_jobs()
-        return self._jobs.get_running_for_search(search_id) is not None
+        search = self._session.get(Search, search_id)
+        if search and search.filter_fingerprint:
+            if self._jobs.get_active_for_fingerprint(search.filter_fingerprint) is not None:
+                return True
+        return self._jobs.get_active_for_search(search_id) is not None

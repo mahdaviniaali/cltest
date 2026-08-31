@@ -27,14 +27,16 @@ celery_app.conf.update(
     task_track_started=True,
     task_default_queue="default",
     task_routes={
+        "crawl.scheduled_filter_crawl": {"queue": "filter"},
+        "crawl.on_demand": {"queue": "filter"},
         "crawl.*": {"queue": "crawl"},
         "outbox.*": {"queue": "outbox_relay"},
         "match.*": {"queue": "match"},
         "notify.*": {"queue": "notify"},
     },
     beat_schedule={
-        "scheduled-incremental-crawl": {
-            "task": "crawl.scheduled_incremental",
+        "scheduled-crawl-tick": {
+            "task": "crawl.scheduled_tick",
             "schedule": schedule(run_every=settings.CRAWL_INTERVAL_SECONDS),
         },
         "outbox-relay": {

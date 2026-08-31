@@ -8,6 +8,23 @@ def test_listing_parser_extracts_newest_first():
     assert [c.bama_id for c in cards] == ["1003-renault-megan", "1002-renault-megan", "1001-renault-megan"]
 
 
+def test_listing_parser_extracts_embedded_detail_urls():
+    html = """
+    <html><body>
+      <a href="/car/detail-1001-renault-megan">Renault Megane 1001</a>
+      <script>{"url":"/car/detail-1002-renault-megan"}</script>
+      <script>{"url":"/car/detail-1003-renault-megan"}</script>
+    </body></html>
+    """
+    parser = BamaListingParser()
+    cards = parser.parse(html, page=1)
+    assert {c.bama_id for c in cards} == {
+        "1001-renault-megan",
+        "1002-renault-megan",
+        "1003-renault-megan",
+    }
+
+
 def test_detail_parser_extracts_fields():
     parser = BamaDetailParser()
     draft = parser.parse(

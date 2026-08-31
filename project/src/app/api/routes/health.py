@@ -66,3 +66,15 @@ def admin_stats(
     from app.services.stats_service import StatsService, overview_to_dict
 
     return overview_to_dict(StatsService(db).get_overview())
+
+
+@router.get("/admin/filter-crawls")
+def admin_filter_crawls(
+    db: Session = Depends(get_db),
+    _user: User = Depends(get_current_user),
+) -> list:
+    from app.schemas.crawl import FilterCrawlAdminOut
+    from app.services.filter_crawl_service import FilterCrawlService
+
+    rows = FilterCrawlService(db).list_active_for_admin()
+    return [FilterCrawlAdminOut.model_validate(row) for row in rows]

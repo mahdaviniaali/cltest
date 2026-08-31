@@ -33,8 +33,9 @@ not_authoritative_for:
 |---|---|---|
 | `advertisements` | `app.models.advertisement.Advertisement` | UNIQUE `bama_id` |
 | `users` | `app.models.user.User` | UNIQUE `email` |
-| `searches` | `app.models.search.Search` | FK `user_id` → users |
-| `crawler_state` | `app.models.crawler_state.CrawlerState` | PK `source_key` |
+| `searches` | `app.models.search.Search` | FK `user_id` → users; indexed `filter_fingerprint` |
+| `filter_crawl_states` | `app.models.filter_crawl_state.FilterCrawlState` | PK `fingerprint` — shared per-filter checkpoint + freshness |
+| `crawler_state` | `app.models.crawler_state.CrawlerState` | PK `source_key` (global + per-filter via `bama:{section}:filter:{hash}`) |
 | `crawl_jobs` | `app.models.crawl_job.CrawlJob` | UNIQUE `idempotency_key` |
 | `outbox_events` | `app.models.outbox_event.OutboxEvent` | — |
 | `matches` | `app.models.match.Match` | UNIQUE `(ad_id, search_id)` |
@@ -56,6 +57,7 @@ New ads: `DbAdStore.save_new` inserts ad + `outbox_events` (`ad.created`) in one
 | `UserRepository` | `app.repositories.user_repository` |
 | `SearchRepository` | `app.repositories.search_repository` |
 | `CrawlJobRepository` | `app.repositories.crawl_job_repository` |
+| `FilterCrawlStateRepository` | `app.repositories.filter_crawl_state_repository` |
 | `CrawlerStateRepository` | `app.repositories.crawler_state_repository` |
 | `OutboxRepository` | `app.repositories.outbox_repository` |
 

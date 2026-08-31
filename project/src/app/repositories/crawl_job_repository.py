@@ -38,6 +38,46 @@ class CrawlJobRepository:
         )
         return self._session.scalar(stmt)
 
+    def get_pending_for_search(self, search_id: int) -> Optional[CrawlJob]:
+        stmt = (
+            select(CrawlJob)
+            .where(
+                CrawlJob.search_id == search_id,
+                CrawlJob.status == CrawlJobStatus.PENDING.value,
+            )
+            .order_by(CrawlJob.created_at.desc())
+            .limit(1)
+        )
+        return self._session.scalar(stmt)
+
+    def get_active_for_search(self, search_id: int) -> Optional[CrawlJob]:
+        self.reconcile_stale_running_jobs()
+        running = self.get_running_for_search(search_id)
+        if running is not None:
+            return running
+        return self.get_pending_for_search(search_id)
+
+    def redispatch_stuck_pending(
+        self,
+        *,
+        max_age_seconds: int = 30,
+    ) -> list[str]:
+        """Return job ids that were PENDING too long (caller should run in thread)."""
+        from datetime import datetime, timezone
+
+        now = datetime.now(timezone.utc)
+        stuck: list[str] = []
+        stmt = select(CrawlJob).where(CrawlJob.status == CrawlJobStatus.PENDING.value)
+        for job in self._session.scalars(stmt).all():
+            created = job.created_at
+            if created is None:
+                continue
+            if created.tzinfo is None:
+                created = created.replace(tzinfo=timezone.utc)
+            if (now - created).total_seconds() >= max_age_seconds:
+                stuck.append(job.id)
+        return stuck
+
     def get_running_for_search(self, search_id: int) -> Optional[CrawlJob]:
         self.reconcile_stale_running_jobs()
         stmt = (
@@ -136,6 +176,20 @@ class CrawlJobRepository:
         )
         return list(self._session.scalars(stmt).all())
 
+    def get_active_for_fingerprint(self, fingerprint: str) -> Optional[CrawlJob]:
+        stmt = (
+            select(CrawlJob)
+            .where(
+                CrawlJob.filter_fingerprint == fingerprint,
+                CrawlJob.status.in_(
+                    [CrawlJobStatus.RUNNING.value, CrawlJobStatus.PENDING.value]
+                ),
+            )
+            .order_by(CrawlJob.created_at.desc())
+            .limit(1)
+        )
+        return self._session.scalar(stmt)
+
     def create(
         self,
         *,
@@ -143,6 +197,7 @@ class CrawlJobRepository:
         triggered_by: str,
         idempotency_key: str,
         search_id: Optional[int] = None,
+        filter_fingerprint: Optional[str] = None,
         job_id: Optional[str] = None,
     ) -> CrawlJob:
         job = CrawlJob(
@@ -151,6 +206,7 @@ class CrawlJobRepository:
             status=CrawlJobStatus.PENDING.value,
             triggered_by=triggered_by,
             search_id=search_id,
+            filter_fingerprint=filter_fingerprint,
             idempotency_key=idempotency_key,
         )
         self._session.add(job)

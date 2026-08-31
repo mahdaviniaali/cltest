@@ -13,6 +13,7 @@ from app.db.base import Base
 class CrawlJobType(str, enum.Enum):
     SCHEDULED_INCREMENTAL = "scheduled_incremental"
     ON_DEMAND_SEARCH = "on_demand_search"
+    ON_DEMAND_FILTER = "on_demand_filter"
     ON_DEMAND_GLOBAL = "on_demand_global"
     SITE_MAP = "site_map"
 
@@ -34,6 +35,7 @@ class CrawlJob(Base):
     status: Mapped[str] = mapped_column(String(16), nullable=False, default=CrawlJobStatus.PENDING.value)
     triggered_by: Mapped[str] = mapped_column(String(64), nullable=False)
     search_id: Mapped[Optional[int]] = mapped_column(ForeignKey("searches.id", ondelete="SET NULL"))
+    filter_fingerprint: Mapped[Optional[str]] = mapped_column(String(64), index=True)
     idempotency_key: Mapped[str] = mapped_column(String(128), unique=True, nullable=False)
     pages_crawled: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     pages_discovered: Mapped[int] = mapped_column(Integer, nullable=False, default=0)

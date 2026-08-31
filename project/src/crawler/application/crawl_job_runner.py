@@ -10,7 +10,6 @@ from crawler.adapters.db_ad_store import DbAdStore, DbCrawlCheckpointStore
 from crawler.adapters.http_page_fetcher import DelayedPageFetcher, HttpPageFetcher
 from crawler.application.incremental_crawl import IncrementalCrawlService
 from crawler.application.listing_url_resolver import resolve_listing_url
-from crawler.application.search_bootstrap_crawl import SearchBootstrapCrawlService
 from crawler.application.site_map_crawl import SiteMapCrawlService
 from crawler.core.http_client import HttpClient
 from config.bama_site import load_bama_site_config
@@ -59,18 +58,19 @@ def run_incremental_job(session: Session, job_id: str) -> None:
         http.close()
 
 
-def run_search_bootstrap_job(session: Session, job_id: str) -> None:
+def run_filter_incremental_job(session: Session, job_id: str) -> None:
     from datetime import datetime, timezone
 
     from app.models.search import Search
     from app.services.matching import MatchingService
+    from crawler.application.filter_incremental_crawl import FilterIncrementalCrawlService
 
     jobs = CrawlJobRepository(session)
     job = jobs.get(job_id)
     if job is None:
         raise ValueError(f"Job not found: {job_id}")
     if job.search_id is None:
-        raise ValueError(f"Bootstrap job missing search_id: {job_id}")
+        raise ValueError(f"Filter job missing search_id: {job_id}")
 
     jobs.mark_running(job)
     session.commit()
@@ -80,7 +80,7 @@ def run_search_bootstrap_job(session: Session, job_id: str) -> None:
         HttpPageFetcher(http, user_agent=settings.USER_AGENT, respect_robots=True),
         settings.CRAWL_DELAY_SECONDS,
     )
-    service = SearchBootstrapCrawlService(
+    service = FilterIncrementalCrawlService(
         session,
         fetcher,
         search_id=job.search_id,
@@ -97,10 +97,11 @@ def run_search_bootstrap_job(session: Session, job_id: str) -> None:
         )
         search = session.get(Search, job.search_id)
         if search is not None:
-            search.bootstrapped_at = datetime.now(timezone.utc)
+            search.bootstrapped_at = search.bootstrapped_at or datetime.now(timezone.utc)
             search.last_bootstrap_job_id = job_id
             session.flush()
-            MatchingService(session).match_existing_for_search(search.id)
+            if result.ads_new == 0:
+                MatchingService(session).match_existing_for_search(search.id)
         session.commit()
     except Exception as exc:
         jobs.mark_failed(job, str(exc))
@@ -110,13 +111,21 @@ def run_search_bootstrap_job(session: Session, job_id: str) -> None:
         http.close()
 
 
+def run_search_bootstrap_job(session: Session, job_id: str) -> None:
+    """Legacy alias — filter incremental replaces bootstrap."""
+    run_filter_incremental_job(session, job_id)
+
+
 def run_on_demand_job(session: Session, job_id: str) -> None:
     jobs = CrawlJobRepository(session)
     job = jobs.get(job_id)
     if job is None:
         raise ValueError(f"Job not found: {job_id}")
-    if job.job_type == CrawlJobType.ON_DEMAND_SEARCH.value:
-        run_search_bootstrap_job(session, job_id)
+    if job.job_type in (
+        CrawlJobType.ON_DEMAND_FILTER.value,
+        CrawlJobType.ON_DEMAND_SEARCH.value,
+    ):
+        run_filter_incremental_job(session, job_id)
     else:
         run_incremental_job(session, job_id)
 
