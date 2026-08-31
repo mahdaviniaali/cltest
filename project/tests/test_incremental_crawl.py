@@ -32,7 +32,7 @@ def test_incremental_stops_at_checkpoint(db_session):
         },
     )
     checkpoint = DbCrawlCheckpointStore(db_session)
-    checkpoint.update_checkpoint("1003", "seed-job")
+    checkpoint.update_checkpoint("1003-renault-megan", "seed-job")
 
     service = IncrementalCrawlService(
         fetcher=fetcher,
@@ -73,7 +73,7 @@ def test_incremental_collects_new_ads_and_outbox(db_session):
     )
     result = service.run()
     assert result.ads_new == 2
-    assert result.newest_bama_id == "1003"
+    assert result.newest_bama_id == "1003-renault-megan"
 
     from app.models.advertisement import Advertisement
     from app.models.outbox_event import OutboxEvent
@@ -86,4 +86,4 @@ def test_incremental_collects_new_ads_and_outbox(db_session):
     assert all(e.event_type == "ad.created" for e in events)
 
     state = DbCrawlCheckpointStore(db_session).get_last_seen_bama_id()
-    assert state == "1003"
+    assert state == "1003-renault-megan"

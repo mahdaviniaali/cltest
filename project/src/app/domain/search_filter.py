@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
+from crawler.domain.labels import normalize_label
+
 
 def ad_matches_search_criteria(
     ad: Any,
@@ -14,9 +16,9 @@ def ad_matches_search_criteria(
     location: Optional[str] = None,
 ) -> bool:
     """Shared filter semantics for matching and validation."""
-    if brand and ad.brand and brand.lower() != ad.brand.lower():
+    if brand and ad.brand and normalize_label(brand).lower() != normalize_label(ad.brand).lower():
         return False
-    if model and ad.model and model.lower() != ad.model.lower():
+    if model and ad.model and normalize_label(model).lower() != normalize_label(ad.model).lower():
         return False
     if min_year is not None and ad.year is not None and ad.year < min_year:
         return False

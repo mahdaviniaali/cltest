@@ -45,9 +45,7 @@ class SearchRefreshService:
         if self._jobs.get_running_for_search(search.id) is not None:
             return SearchRefreshResult(is_refreshing=True, message=self.REFRESH_MESSAGE)
 
-        if self._jobs.get_any_running() is not None:
-            return SearchRefreshResult(is_refreshing=True, message=self.REFRESH_MESSAGE)
-
+        self._jobs.reconcile_abandoned_pending_jobs()
         cache = self._on_demand.evaluate_cache_for_search(search)
 
         if cache.sufficient and search.bootstrapped_at is not None:

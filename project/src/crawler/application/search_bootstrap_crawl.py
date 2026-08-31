@@ -93,7 +93,7 @@ class SearchBootstrapCrawlService:
                     ads_new += 1
 
             matching_count = self._count_matching(search)
-            if matching_count >= self._target_count:
+            if matching_count >= self._target_count or ads_new >= self._target_count:
                 target_reached = True
                 break
 

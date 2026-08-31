@@ -28,27 +28,30 @@ def upgrade_schema(engine_instance=None) -> None:
 
 
 def recover_interrupted_jobs(engine_instance=None) -> None:
-    """Mark site-map jobs left RUNNING after API restart as failed."""
+    """Mark in-flight crawl jobs as failed after API restart (background threads do not survive)."""
     from datetime import datetime, timezone
 
     from sqlalchemy import select
+    from sqlalchemy.orm import sessionmaker
 
-    from app.models.crawl_job import CrawlJob, CrawlJobStatus, CrawlJobType
+    from app.models.crawl_job import CrawlJob, CrawlJobStatus
+    from app.repositories.crawl_job_repository import CrawlJobRepository
 
     eng = engine_instance or engine
     Session = sessionmaker(bind=eng)
     session = Session()
     try:
+        now = datetime.now(timezone.utc)
         stmt = select(CrawlJob).where(
-            CrawlJob.job_type == CrawlJobType.SITE_MAP.value,
             CrawlJob.status.in_(
                 [CrawlJobStatus.RUNNING.value, CrawlJobStatus.PAUSED.value]
-            ),
+            )
         )
         for job in session.scalars(stmt).all():
             job.status = CrawlJobStatus.FAILED.value
             job.error = "interrupted by server restart"
-            job.finished_at = datetime.now(timezone.utc)
+            job.finished_at = now
+        CrawlJobRepository(session).reconcile_abandoned_pending_jobs(max_age_seconds=0)
         session.commit()
     finally:
         session.close()

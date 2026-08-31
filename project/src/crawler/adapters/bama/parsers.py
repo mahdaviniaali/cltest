@@ -6,14 +6,15 @@ from urllib.parse import urljoin, urlparse, urlencode, parse_qs, urlunparse
 
 from bs4 import BeautifulSoup
 
+from crawler.domain.labels import normalize_label
 from crawler.domain.entities import AdDraft, ListingCard
 
 BAMA_BASE = "https://bama.ir"
 
 DETAIL_PATTERNS = {
-    "car": re.compile(r"/car/detail-(?P<id>\d+)", re.I),
-    "motorcycle": re.compile(r"/motorcycle/detail-(?P<id>\d+)", re.I),
-    "truck": re.compile(r"/truck/detail-(?P<id>\d+)", re.I),
+    "car": re.compile(r"/car/detail-(?P<id>[a-z0-9-]+)", re.I),
+    "motorcycle": re.compile(r"/motorcycle/detail-(?P<id>[a-z0-9-]+)", re.I),
+    "truck": re.compile(r"/truck/detail-(?P<id>[a-z0-9-]+)", re.I),
 }
 
 
@@ -97,9 +98,9 @@ class BamaDetailParser:
     def _split_title(self, title: str) -> tuple[str | None, str | None]:
         parts = title.split()
         if len(parts) >= 2:
-            return parts[0], parts[1]
+            return normalize_label(parts[0]), normalize_label(parts[1])
         if parts:
-            return parts[0], None
+            return normalize_label(parts[0]), None
         return None, None
 
     def _extract_specs(self, soup: BeautifulSoup) -> dict:

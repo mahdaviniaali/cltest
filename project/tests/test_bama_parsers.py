@@ -5,7 +5,7 @@ from tests.fixtures.bama_html import LISTING_PAGE_1
 def test_listing_parser_extracts_newest_first():
     parser = BamaListingParser()
     cards = parser.parse(LISTING_PAGE_1, page=1)
-    assert [c.bama_id for c in cards] == ["1003", "1002", "1001"]
+    assert [c.bama_id for c in cards] == ["1003-renault-megan", "1002-renault-megan", "1001-renault-megan"]
 
 
 def test_detail_parser_extracts_fields():

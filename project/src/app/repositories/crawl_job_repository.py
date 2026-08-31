@@ -28,7 +28,18 @@ class CrawlJobRepository:
         )
         return self._session.scalar(stmt)
 
+    def get_any_running(self) -> Optional[CrawlJob]:
+        self.reconcile_stale_running_jobs()
+        stmt = (
+            select(CrawlJob)
+            .where(CrawlJob.status == CrawlJobStatus.RUNNING.value)
+            .order_by(CrawlJob.started_at.desc())
+            .limit(1)
+        )
+        return self._session.scalar(stmt)
+
     def get_running_for_search(self, search_id: int) -> Optional[CrawlJob]:
+        self.reconcile_stale_running_jobs()
         stmt = (
             select(CrawlJob)
             .where(
@@ -39,14 +50,68 @@ class CrawlJobRepository:
         )
         return self._session.scalar(stmt)
 
-    def get_any_running(self) -> Optional[CrawlJob]:
-        stmt = (
-            select(CrawlJob)
-            .where(CrawlJob.status == CrawlJobStatus.RUNNING.value)
-            .order_by(CrawlJob.started_at.desc())
-            .limit(1)
+    def reconcile_stale_running_jobs(
+        self,
+        *,
+        max_age_seconds: int | None = None,
+    ) -> int:
+        """Fail RUNNING/PAUSED jobs that exceeded the stale window."""
+        from config import settings
+
+        max_age = max_age_seconds if max_age_seconds is not None else settings.CRAWL_JOB_STALE_SECONDS
+        now = datetime.now(timezone.utc)
+        stmt = select(CrawlJob).where(
+            CrawlJob.status.in_(
+                [CrawlJobStatus.RUNNING.value, CrawlJobStatus.PAUSED.value]
+            )
         )
-        return self._session.scalar(stmt)
+        failed = 0
+        for job in self._session.scalars(stmt).all():
+            started = job.started_at
+            if started is None:
+                job.status = CrawlJobStatus.FAILED.value
+                job.error = "stale job without started_at"
+                job.finished_at = now
+                failed += 1
+                continue
+            if started.tzinfo is None:
+                started = started.replace(tzinfo=timezone.utc)
+            age = (now - started).total_seconds()
+            if age > max_age:
+                job.status = CrawlJobStatus.FAILED.value
+                job.error = f"stale after {int(age)}s"
+                job.finished_at = now
+                failed += 1
+        if failed:
+            self._session.flush()
+        return failed
+
+    def reconcile_abandoned_pending_jobs(
+        self,
+        *,
+        max_age_seconds: int | None = None,
+    ) -> int:
+        """Cancel PENDING jobs that were never dispatched."""
+        from config import settings
+
+        max_age = max_age_seconds if max_age_seconds is not None else settings.CRAWL_JOB_STALE_SECONDS
+        now = datetime.now(timezone.utc)
+        stmt = select(CrawlJob).where(CrawlJob.status == CrawlJobStatus.PENDING.value)
+        cancelled = 0
+        for job in self._session.scalars(stmt).all():
+            created = job.created_at
+            if created is None:
+                continue
+            if created.tzinfo is None:
+                created = created.replace(tzinfo=timezone.utc)
+            if (now - created).total_seconds() > max_age:
+                job.status = CrawlJobStatus.CANCELLED.value
+                job.error = "abandoned pending job"
+                job.finished_at = now
+                cancelled += 1
+        if cancelled:
+            self._session.flush()
+        return cancelled
 
     def get_running_site_map(self) -> Optional[CrawlJob]:
         stmt = (

@@ -104,6 +104,5 @@ class DataPreviewService:
         return self._jobs.get_any_running() is not None
 
     def _is_refreshing_for_search(self, search_id: int) -> bool:
-        if self._jobs.get_running_for_search(search_id) is not None:
-            return True
-        return self._jobs.get_any_running() is not None
+        self._jobs.reconcile_abandoned_pending_jobs()
+        return self._jobs.get_running_for_search(search_id) is not None
