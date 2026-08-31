@@ -85,12 +85,12 @@ def infer_page_role(
     from crawler.domain.url_patterns import infer_url_pattern, path_depth as compute_path_depth
 
     pattern = inferred_pattern or infer_url_pattern(url)
+    if has_query:
+        return config.role_defaults.has_query
     rule = config.match_route_rule(url, pattern)
     if rule is not None:
         return rule.role
     depth = path_depth if path_depth is not None else compute_path_depth(url)
-    if has_query:
-        return config.role_defaults.has_query
     if depth <= 1:
         return config.role_defaults.path_depth_lte_1
     return config.role_defaults.fallback

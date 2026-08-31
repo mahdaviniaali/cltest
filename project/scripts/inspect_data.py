@@ -1,15 +1,45 @@
-"""Inspect crawled data quality — run: python scripts/inspect_data.py"""
+"""Inspect crawled data quality — run: python scripts/inspect_data.py [--reclassify]"""
 from __future__ import annotations
 
 import json
 import sqlite3
+import sys
 from collections import Counter
 from pathlib import Path
 
 DB = Path(__file__).resolve().parent.parent / "data" / "app.db"
+PROJECT = Path(__file__).resolve().parent.parent
+
+
+def _maybe_reclassify_nodes() -> None:
+    if "--reclassify" not in sys.argv and "--reclassify-discovered" not in sys.argv:
+        return
+    sys.path.insert(0, str(PROJECT / "src"))
+    sys.path.insert(0, str(PROJECT))
+    import app.models.site_map  # noqa: F401
+    from app.db.engine import SessionLocal
+    from app.repositories.site_node_repository import SiteNodeRepository
+    from config.bama_site import load_bama_site_config
+    from crawler.application.site_catalog_builder import SiteCatalogBuilder
+
+    config = load_bama_site_config()
+    session = SessionLocal()
+    try:
+        repo = SiteNodeRepository(session)
+        if "--reclassify-discovered" in sys.argv and "--reclassify" not in sys.argv:
+            n = repo.reclassify_discovered(config)
+        else:
+            n = repo.reclassify_nodes(config)
+        sections = SiteCatalogBuilder(session, config).build()
+        session.commit()
+        print(f"Reclassified {n} site nodes")
+        print(f"Rebuilt {len(sections)} site sections\n")
+    finally:
+        session.close()
 
 
 def main() -> None:
+    _maybe_reclassify_nodes()
     if not DB.exists():
         print("NO DB at", DB)
         return

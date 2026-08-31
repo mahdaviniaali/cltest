@@ -81,12 +81,14 @@ class InspectorService:
                         "path": path_acc,
                         "label": segment,
                         "page_key": None,
+                        "url": None,
                         "page_type": None,
                         "section": None,
                         "children": {},
                     }
                 if idx == len(segments) - 1:
                     cursor[segment]["page_key"] = node.page_key
+                    cursor[segment]["url"] = node.url
                     cursor[segment]["page_type"] = node.page_type
                     cursor[segment]["section"] = node.section
                     if node.title:
@@ -104,6 +106,7 @@ class InspectorService:
                     path=raw["path"],
                     label=raw["label"],
                     page_key=raw.get("page_key"),
+                    url=raw.get("url"),
                     page_type=raw.get("page_type"),
                     section=raw.get("section"),
                     children=self._convert_tree(raw.get("children") or {}),

@@ -449,6 +449,90 @@ h3 {
   padding-right: 1rem;
 }
 
+.external-link {
+  color: #2563eb;
+  word-break: break-all;
+}
+
+.external-link:hover {
+  text-decoration: underline;
+}
+
+.page-detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 0.35rem;
+}
+
+.page-detail-header h3 {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+  word-break: break-word;
+}
+
+.external-open-btn {
+  flex-shrink: 0;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.page-url-line {
+  margin: 0 0 1rem;
+  word-break: break-all;
+}
+
+.tree-open-link {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 6px;
+  background: #e2e8f0;
+  color: #2563eb;
+  font-size: 0.85rem;
+  text-decoration: none;
+}
+
+.tree-open-link:hover {
+  background: #dbeafe;
+}
+
+.graph-node {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.25rem;
+}
+
+.graph-open-link {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 4px;
+  background: #e2e8f0;
+  color: #2563eb;
+  font-size: 0.7rem;
+  text-decoration: none;
+}
+
+.event-url {
+  margin: 0.25rem 0 0;
+  font-size: 0.8rem;
+  word-break: break-all;
+}
+
+.event-meta {
+  margin: 0.15rem 0 0;
+  font-size: 0.75rem;
+}
+
 @media (max-width: 960px) {
   .inspector-grid {
     grid-template-columns: 1fr;

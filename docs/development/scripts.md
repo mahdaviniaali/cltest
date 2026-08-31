@@ -24,7 +24,7 @@ not_authoritative_for:
 | Script | When to use |
 |---|---|
 | `init_db.py` | First-time DB setup or empty `data/app.db` |
-| `inspect_data.py` | Health check: table counts, site map quality, ads, crawl jobs |
+| `inspect_data.py` | Health check; `--reclassify` fixes all node labels + rebuilds sections |
 | `cleanup_stale_jobs.py` | UI stuck on «در حال بروزرسانی» — clear zombie `running`/`pending` jobs |
 
 Run from `project/`:
@@ -32,6 +32,7 @@ Run from `project/`:
 ```bash
 python scripts/init_db.py
 python scripts/inspect_data.py
+python scripts/inspect_data.py --reclassify   # fix legacy page_type/section on all site_nodes
 python scripts/cleanup_stale_jobs.py          # respect CRAWL_JOB_STALE_SECONDS
 python scripts/cleanup_stale_jobs.py --force  # fail/cancel all in-flight jobs now
 ```

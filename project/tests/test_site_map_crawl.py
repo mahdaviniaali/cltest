@@ -31,8 +31,11 @@ def db_session():
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
+    import app.models.advertisement  # noqa: F401
     import app.models.crawl_job  # noqa: F401
+    import app.models.search  # noqa: F401
     import app.models.site_map  # noqa: F401
+    import app.models.user  # noqa: F401
 
     Base.metadata.create_all(bind=engine)
     Session = sessionmaker(bind=engine)
@@ -127,3 +130,102 @@ def test_site_map_pause_stops_crawl(db_session):
 
     result = service.run()
     assert result.stopped_reason == "paused"
+
+
+def test_site_map_continues_when_home_already_visited(db_session):
+    """Second run must still crawl new pages (incremental frontier), not exit at 0."""
+    from app.models.site_map import SiteNode, SiteNodeStatus
+    from app.repositories.visited_url_repository import VisitedUrlRepository
+    from crawler.domain.url_identity import compute_page_key
+
+    job1 = str(uuid4())
+    CrawlJobRepository(db_session).create(
+        job_type=CrawlJobType.SITE_MAP.value,
+        triggered_by="test",
+        idempotency_key=f"first:{job1}",
+        job_id=job1,
+    )
+    db_session.commit()
+
+    html_home = """
+    <html><head><title>Home</title></head><body>
+    <a href="/car">Car</a>
+    </body></html>
+    """
+    html_car = """
+    <html><head><title>Car</title></head><body>
+    <a href="/car/toyota">Toyota</a>
+    </body></html>
+    """
+    html_toyota = "<html><head><title>Toyota</title></head><body></body></html>"
+
+    pages = {
+        "https://bama.ir/": html_home,
+        "https://bama.ir/car": html_car,
+        "https://bama.ir/car/toyota": html_toyota,
+    }
+    config = BamaSiteConfig(
+        seed_urls=["https://bama.ir/"],
+        domain_allow=["bama.ir"],
+        section_roots=[],
+        default_max_depth=3,
+        default_max_pages=10,
+        sitemap_max_urls=0,
+        sitemap_defer=False,
+    )
+
+    first = SiteMapCrawlService(
+        db_session,
+        FakeFetcher(pages),
+        job_id=job1,
+        config=config,
+        max_pages=2,
+        max_depth=3,
+    )
+    first_result = first.run()
+    assert first_result.pages_crawled == 2
+
+    home_key = compute_page_key("https://bama.ir/")
+    visited = VisitedUrlRepository(db_session)
+    assert visited.is_visited(home_key)
+
+    toyota_key = compute_page_key("https://bama.ir/car/toyota")
+    if db_session.get(SiteNode, toyota_key) is None:
+        db_session.add(
+            SiteNode(
+                page_key=toyota_key,
+                url="https://bama.ir/car/toyota",
+                url_pattern="/car/toyota",
+                depth=2,
+                parent_page_key=compute_page_key("https://bama.ir/car"),
+                page_type="hub",
+                section="car",
+                title="Toyota",
+                status=SiteNodeStatus.DISCOVERED.value,
+                meta={"weight": 5},
+            )
+        )
+        db_session.commit()
+
+    job2 = str(uuid4())
+    CrawlJobRepository(db_session).create(
+        job_type=CrawlJobType.SITE_MAP.value,
+        triggered_by="test",
+        idempotency_key=f"second:{job2}",
+        job_id=job2,
+    )
+    db_session.commit()
+
+    fetcher2 = FakeFetcher(pages)
+    second = SiteMapCrawlService(
+        db_session,
+        fetcher2,
+        job_id=job2,
+        config=config,
+        max_pages=5,
+        max_depth=3,
+    )
+    second_result = second.run()
+
+    assert second_result.pages_crawled >= 1
+    assert "https://bama.ir/car/toyota" in fetcher2.calls

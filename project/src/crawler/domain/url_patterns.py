@@ -9,7 +9,7 @@ _UUID_RE = re.compile(
 )
 
 
-_DETAIL_SEGMENT = re.compile(r"^detail-(?P<id>\d+)$", re.I)
+_DETAIL_SEGMENT = re.compile(r"^detail-(?P<id>[a-z0-9][a-z0-9-]*)$", re.I)
 
 
 def infer_url_pattern(url: str) -> str:

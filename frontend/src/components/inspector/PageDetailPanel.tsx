@@ -1,4 +1,5 @@
 import type { SitePageDetail, SiteSection } from "../../api/inspector";
+import ExternalLink from "./ExternalLink";
 
 interface Props {
   page: SitePageDetail | null;
@@ -37,8 +38,15 @@ export default function PageDetailPanel({
       </div>
       {page ? (
         <div className="page-detail">
-          <h3>{page.title || page.url}</h3>
-          <p className="muted">{page.url}</p>
+          <div className="page-detail-header">
+            <h3>{page.title || page.url}</h3>
+            <ExternalLink href={page.url} className="link-button external-open-btn">
+              مشاهده در bama.ir ↗
+            </ExternalLink>
+          </div>
+          <p className="muted page-url-line">
+            <ExternalLink href={page.url}>{page.url}</ExternalLink>
+          </p>
           <dl className="detail-grid">
             <dt>نوع</dt>
             <dd>{page.page_type}</dd>
@@ -58,7 +66,8 @@ export default function PageDetailPanel({
               <ul className="link-list">
                 {page.outbound_links.slice(0, 20).map((link) => (
                   <li key={link.page_key}>
-                    <span className="tree-type">{link.relation_type}</span> {link.url || link.page_key}
+                    <span className="tree-type">{link.relation_type}</span>{" "}
+                    <ExternalLink href={link.url}>{link.url || link.page_key}</ExternalLink>
                   </li>
                 ))}
               </ul>

@@ -216,3 +216,18 @@ def test_search_results_endpoint(client, db_session):
     response = client.get(f"/api/searches/{search.id}/results")
     assert response.status_code == 200
     assert response.json()["total_count"] == 1
+
+
+def test_delete_search(client, db_session):
+    from app.models.search import Search
+
+    search = Search(user_id=1, brand="Mazda", enabled=True)
+    db_session.add(search)
+    db_session.commit()
+    db_session.refresh(search)
+
+    response = client.delete(f"/api/searches/{search.id}")
+    assert response.status_code == 204
+
+    remaining = client.get("/api/searches").json()
+    assert all(item["id"] != search.id for item in remaining)

@@ -13,6 +13,7 @@ export default function DashboardPage() {
   const [error, setError] = useState("");
   const [editing, setEditing] = useState<Search | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
   const loadSearches = useCallback(async () => {
     setLoading(true);
@@ -51,13 +52,30 @@ export default function DashboardPage() {
 
   async function handleDelete(id: number) {
     if (!confirm("این فیلتر حذف شود؟")) return;
-    await api.deleteSearch(id);
-    await loadSearches();
+    setDeletingId(id);
+    setError("");
+    try {
+      await api.deleteSearch(id);
+      if (editing?.id === id) {
+        setEditing(null);
+        setShowForm(false);
+      }
+      await loadSearches();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "خطا در حذف فیلتر");
+    } finally {
+      setDeletingId(null);
+    }
   }
 
   async function handleToggle(id: number) {
-    await api.toggleSearch(id);
-    await loadSearches();
+    setError("");
+    try {
+      await api.toggleSearch(id);
+      await loadSearches();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "خطا در تغییر وضعیت فیلتر");
+    }
   }
 
   return (
@@ -111,14 +129,19 @@ export default function DashboardPage() {
                   <Link to={`/searches/${search.id}`} className="link-button">
                     نتایج
                   </Link>
-                  <button className="secondary" onClick={() => handleToggle(search.id)}>
+                  <button type="button" className="secondary" onClick={() => void handleToggle(search.id)}>
                     {search.enabled ? "غیرفعال" : "فعال"}
                   </button>
-                  <button className="secondary" onClick={() => { setShowForm(false); setEditing(search); }}>
+                  <button type="button" className="secondary" onClick={() => { setShowForm(false); setEditing(search); }}>
                     ویرایش
                   </button>
-                  <button className="danger" onClick={() => void handleDelete(search.id)}>
-                    حذف
+                  <button
+                    type="button"
+                    className="danger"
+                    disabled={deletingId === search.id}
+                    onClick={() => void handleDelete(search.id)}
+                  >
+                    {deletingId === search.id ? "در حال حذف..." : "حذف"}
                   </button>
                 </div>
               </div>

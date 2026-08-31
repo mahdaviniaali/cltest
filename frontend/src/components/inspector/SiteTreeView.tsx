@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { SiteTreeNode } from "../../api/inspector";
+import ExternalLink from "./ExternalLink";
 
 interface Props {
   nodes: SiteTreeNode[];
@@ -42,6 +43,15 @@ function TreeItem({
           {node.section && <span className="tree-badge">{node.section}</span>}
           {node.page_type && <span className="tree-type">{node.page_type}</span>}
         </button>
+        {node.url && (
+          <ExternalLink
+            href={node.url}
+            className="tree-open-link"
+            title="باز کردن در تب جدید"
+          >
+            ↗
+          </ExternalLink>
+        )}
       </div>
       {hasChildren && open && (
         <ul className="tree-children">

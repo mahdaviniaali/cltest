@@ -24,6 +24,7 @@ export interface SiteTreeNode {
   path: string;
   label: string;
   page_key?: string | null;
+  url?: string | null;
   page_type?: string | null;
   section?: string | null;
   children: SiteTreeNode[];

@@ -31,13 +31,15 @@ Hybrid incremental crawler (ADR 006) with hexagonal ports:
 
 ## Site map (ADR 008, ADR 009)
 
-1. Seed homepage only at depth 0; `section_roots` forced at depth 1 after home crawl
-2. Level-first BFS: `heapq` with `sort_key = (depth, -weight, seq)` — weights from `route_rules` / `section_roots` in `bama_site.yaml`
-3. Sitemap capped (`sitemap_max_urls`); overflow deferred until level 1 completes
-4. Canonical URL dedup via configurable `strip_query_params`
-5. Config-driven page roles (`section_hub`, `model_hub`, `ad_detail`, …) — no ad parsing in site map loop
-6. Persist graph (`site_nodes`, `site_edges`) + events (`level_completed`, `page_fetched`)
-7. Build section catalog (`site_sections`) on completion for incremental crawl routing
+1. Each Inspector run targets up to `max_pages` **new** URLs (UI default 500); prior `visited_urls` are skipped
+2. Fresh job always bootstraps `section_roots` + sitemap frontier even when home was crawled before
+3. Level-first BFS: `heapq` with `sort_key = (depth, -weight, seq)` — weights from `route_rules` / `section_roots` in `bama_site.yaml`
+4. Discovered-but-uncrawled URLs persisted as `site_nodes.status=discovered` and re-queued on next run
+5. Sitemap capped on first run (`sitemap_max_urls`); incremental runs seed more unvisited sitemap URLs (up to `max_pages × 3`)
+6. Canonical URL dedup via configurable `strip_query_params`
+7. Config-driven page roles (`section_hub`, `model_hub`, `ad_detail`, …) — no ad parsing in site map loop
+8. Persist graph (`site_nodes`, `site_edges`) + events (`level_completed`, `page_fetched`)
+9. Build section catalog (`site_sections`) on completion for incremental crawl routing
 
 ## Incremental logic
 

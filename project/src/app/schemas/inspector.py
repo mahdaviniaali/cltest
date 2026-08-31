@@ -45,6 +45,7 @@ class SiteTreeNode(BaseModel):
     path: str
     label: str
     page_key: Optional[str] = None
+    url: Optional[str] = None
     page_type: Optional[str] = None
     section: Optional[str] = None
     children: list["SiteTreeNode"] = Field(default_factory=list)

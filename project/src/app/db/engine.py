@@ -1,16 +1,32 @@
 from collections.abc import Generator
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
+from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, sessionmaker
 
 from config import settings
+
+
+def _configure_sqlite(engine: Engine) -> None:
+    if engine.dialect.name != "sqlite":
+        return
+
+    @event.listens_for(engine, "connect")
+    def _set_sqlite_pragmas(dbapi_connection, _connection_record) -> None:
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.execute("PRAGMA journal_mode=WAL")
+        cursor.execute("PRAGMA busy_timeout=30000")
+        cursor.close()
 
 
 def get_engine():
     connect_args = {}
     if settings.DATABASE_URL.startswith("sqlite"):
         connect_args["check_same_thread"] = False
-    return create_engine(settings.DATABASE_URL, connect_args=connect_args)
+    engine = create_engine(settings.DATABASE_URL, connect_args=connect_args)
+    _configure_sqlite(engine)
+    return engine
 
 
 engine = get_engine()

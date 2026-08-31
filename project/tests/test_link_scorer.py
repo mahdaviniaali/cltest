@@ -35,6 +35,12 @@ def test_infer_page_role_from_yaml_only():
     role = infer_page_role("https://bama.ir/car/detail-42", config)
     assert role == "ad_detail"
 
+    slug_role = infer_page_role(
+        "https://bama.ir/car/detail-aojbfxng-capra-2-4wd-1400",
+        config,
+    )
+    assert slug_role == "ad_detail"
+
     hub = infer_page_role("https://bama.ir/motorcycle", config)
     assert hub == "section_hub"
 

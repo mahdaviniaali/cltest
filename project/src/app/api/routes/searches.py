@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db
@@ -149,7 +150,16 @@ def delete_search(
     search = repo.get_for_user(current_user.id, search_id)
     if search is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Search not found")
-    repo.delete(search)
+    try:
+        repo.delete(search)
+    except OperationalError as exc:
+        db.rollback()
+        if "database is locked" in str(exc).lower():
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Database is busy (crawl in progress). Try again in a few seconds.",
+            ) from exc
+        raise
 
 
 @router.patch("/{search_id}/toggle", response_model=SearchOut)

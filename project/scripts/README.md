@@ -6,6 +6,7 @@ Operator CLI tools for the Bama crawler backend. **Canonical rules:** [`docs/dev
 |---|---|
 | Initialize database | `python scripts/init_db.py` |
 | Inspect crawled data & jobs | `python scripts/inspect_data.py` |
+| Fix legacy site-map labels | `python scripts/inspect_data.py --reclassify` |
 | Clear stuck crawl jobs | `python scripts/cleanup_stale_jobs.py` |
 
 Run all commands from `project/` with `PYTHONPATH=src` or an activated venv that includes `src`.

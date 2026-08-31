@@ -32,8 +32,11 @@ def db_session():
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
+    import app.models.advertisement  # noqa: F401
     import app.models.crawl_job  # noqa: F401
+    import app.models.search  # noqa: F401
     import app.models.site_map  # noqa: F401
+    import app.models.user  # noqa: F401
 
     Base.metadata.create_all(bind=engine)
     Session = sessionmaker(bind=engine)

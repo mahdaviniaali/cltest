@@ -9,6 +9,7 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import type { SiteGraph } from "../../api/inspector";
+import ExternalLink from "./ExternalLink";
 
 interface Props {
   graph: SiteGraph | null;
@@ -25,10 +26,15 @@ export default function SiteGraphView({ graph, selectedKey, onSelect }: Props) {
       position: { x: (idx % cols) * 220, y: Math.floor(idx / cols) * 100 },
       data: {
         label: (
-          <button type="button" className="graph-node-btn" onClick={() => onSelect(n.page_key)}>
-            <strong>{n.section || n.page_type}</strong>
-            <small>{n.title || n.url.split("/").pop()}</small>
-          </button>
+          <div className="graph-node">
+            <button type="button" className="graph-node-btn" onClick={() => onSelect(n.page_key)}>
+              <strong>{n.section || n.page_type}</strong>
+              <small>{n.title || n.url.split("/").pop()}</small>
+            </button>
+            <ExternalLink href={n.url} className="graph-open-link" title="باز کردن در تب جدید">
+              ↗
+            </ExternalLink>
+          </div>
         ),
       },
       style: {

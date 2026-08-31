@@ -28,7 +28,7 @@ export default function SiteMapControl({
     <div className="inspector-control">
       <div className="inspector-control-actions">
         <button disabled={loading || running} onClick={() => onStart(500, 6)}>
-          شروع Site Map
+          اکتشاف ۵۰۰ صفحه جدید
         </button>
         <button className="secondary" disabled={!running} onClick={onPause}>
           توقف

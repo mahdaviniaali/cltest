@@ -112,9 +112,14 @@ class SiteMapCrawlService:
                 weight = score_url(canonical, self._config)
                 self._push(queue, queued_keys, canonical, row.depth, None, weight)
         else:
+            home_key = compute_page_key(self._canonical(self._seed) or self._seed)
             for seed in self._seeds:
                 weight = score_url(seed, self._config)
                 self._push(queue, queued_keys, seed, 0, None, weight)
+            # Always bootstrap section roots + sitemap even when home was crawled in a prior job.
+            incremental = self._visited.is_visited(home_key)
+            self._bootstrap_depth_one(queue, queued_keys, home_key, full_sitemap_seed=incremental)
+            self._seed_uncrawled_frontier(queue, queued_keys)
 
         stopped_reason = "completed"
         while queue and self._pages_crawled < self._policy.max_pages:
@@ -240,6 +245,14 @@ class SiteMapCrawlService:
                     if not url_in_scope(child_canonical, self._policy, seed=self._seed):
                         continue
                     child_weight = score_url(child_canonical, self._config)
+                    self._nodes.ensure_discovered(
+                        page_key=child_key,
+                        url=child_canonical,
+                        depth=depth + 1,
+                        parent_page_key=page_key,
+                        job_id=self._job_id,
+                        weight=child_weight,
+                    )
                     self._edges.add_edge(
                         from_page_key=page_key,
                         to_page_key=child_key,
@@ -296,6 +309,8 @@ class SiteMapCrawlService:
         page_key = compute_page_key(canonical)
         if page_key in queued_keys:
             return
+        if self._visited.is_visited(page_key):
+            return
         queued_keys.add(page_key)
         self._seq += 1
         sort_key = (depth, -weight, self._seq)
@@ -315,11 +330,23 @@ class SiteMapCrawlService:
         queue: list[_QueueEntry],
         queued_keys: set[str],
         home_key: str,
+        *,
+        full_sitemap_seed: bool = False,
     ) -> None:
+        if self._depth_one_bootstrapped:
+            return
         self._depth_one_bootstrapped = True
         for root in self._config.section_roots:
             url = ensure_http_url(root.url)
             child_key = compute_page_key(self._canonical(url) or url)
+            self._nodes.ensure_discovered(
+                page_key=child_key,
+                url=self._canonical(url) or url,
+                depth=1,
+                parent_page_key=home_key,
+                job_id=self._job_id,
+                weight=root.weight,
+            )
             self._edges.add_edge(
                 from_page_key=home_key,
                 to_page_key=child_key,
@@ -327,13 +354,44 @@ class SiteMapCrawlService:
                 job_id=self._job_id,
             )
             self._push(queue, queued_keys, url, 1, home_key, root.weight)
-        self._collect_sitemap_urls(queue, queued_keys, home_key)
+        self._collect_sitemap_urls(
+            queue,
+            queued_keys,
+            home_key,
+            full_seed=full_sitemap_seed,
+        )
+        if full_sitemap_seed:
+            self._flush_deferred(queue, queued_keys)
+
+    def _seed_uncrawled_frontier(
+        self,
+        queue: list[_QueueEntry],
+        queued_keys: set[str],
+    ) -> None:
+        seed_budget = max(self._policy.max_pages * 3, 100)
+        frontier = self._nodes.list_uncrawled_frontier(
+            limit=seed_budget,
+            max_depth=self._policy.max_depth,
+            is_visited=self._visited.is_visited,
+        )
+        for node in frontier:
+            weight = int((node.meta or {}).get("weight") or score_url(node.url, self._config))
+            self._push(
+                queue,
+                queued_keys,
+                node.url,
+                node.depth,
+                node.parent_page_key,
+                weight,
+            )
 
     def _collect_sitemap_urls(
         self,
         queue: list[_QueueEntry],
         queued_keys: set[str],
         home_key: str,
+        *,
+        full_seed: bool = False,
     ) -> None:
         raw_fetcher = self._resolve_http_fetcher()
         if raw_fetcher is None:
@@ -362,11 +420,21 @@ class SiteMapCrawlService:
 
         collected.sort(key=lambda item: -item[1])
         cap = self._config.sitemap_max_urls
+        if full_seed:
+            cap = max(cap, self._policy.max_pages * 3)
         immediate = collected[:cap]
-        deferred = collected[cap:] if self._config.sitemap_defer else []
+        deferred = collected[cap:] if self._config.sitemap_defer and not full_seed else []
 
         for norm, weight in immediate:
             child_key = compute_page_key(norm)
+            self._nodes.ensure_discovered(
+                page_key=child_key,
+                url=norm,
+                depth=1,
+                parent_page_key=home_key,
+                job_id=self._job_id,
+                weight=weight,
+            )
             self._edges.add_edge(
                 from_page_key=home_key,
                 to_page_key=child_key,
