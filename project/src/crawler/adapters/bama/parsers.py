@@ -11,6 +11,23 @@ from crawler.domain.entities import AdDraft, ListingCard
 
 BAMA_BASE = "https://bama.ir"
 
+
+def split_bama_title(title: str) -> tuple[str | None, str | None]:
+    """Bama H1 is `brand، model` (Persian or ASCII comma). Fallback: first two words."""
+    normalized = title.replace("،", ",")
+    if "," in normalized:
+        left, right = normalized.split(",", 1)
+        brand = normalize_label(left)
+        model = normalize_label(right)
+        if brand and model:
+            return brand, model
+    parts = title.split()
+    if len(parts) >= 2:
+        return normalize_label(parts[0]), normalize_label(parts[1])
+    if parts:
+        return normalize_label(parts[0]), None
+    return None, None
+
 DETAIL_PATTERNS = {
     "car": re.compile(r"/car/detail-(?P<id>[a-z0-9-]+)", re.I),
     "motorcycle": re.compile(r"/motorcycle/detail-(?P<id>[a-z0-9-]+)", re.I),
@@ -79,7 +96,7 @@ class BamaDetailParser:
         title_el = soup.find("h1")
         title = title_el.get_text(strip=True) if title_el else f"Ad {bama_id}"
 
-        brand, model = self._split_title(title)
+        brand, model = split_bama_title(title)
         specs = self._extract_specs(soup)
         section = self._section_from_url(url)
 
@@ -103,22 +120,6 @@ class BamaDetailParser:
             if f"/{section}/" in path:
                 return section
         return "car"
-
-    def _split_title(self, title: str) -> tuple[str | None, str | None]:
-        # Bama titles are typically "برند، مدل" (Persian comma) e.g. "کی ام سی،  K7".
-        normalized = title.replace("،", ",")
-        if "," in normalized:
-            left, right = normalized.split(",", 1)
-            brand = normalize_label(left)
-            model = normalize_label(right)
-            if brand and model:
-                return brand, model
-        parts = title.split()
-        if len(parts) >= 2:
-            return normalize_label(parts[0]), normalize_label(parts[1])
-        if parts:
-            return normalize_label(parts[0]), None
-        return None, None
 
     def _extract_specs(self, soup: BeautifulSoup) -> dict:
         out: dict = {}

@@ -25,7 +25,7 @@ def test_listing_parser_extracts_embedded_detail_urls():
     }
 
 
-def test_detail_parser_splits_persian_comma_title():
+def test_detail_parser_splits_comma_title():
     parser = BamaDetailParser()
     draft = parser.parse(
         "<html><body><h1>کی ام سی،  K7</h1></body></html>",
@@ -34,6 +34,14 @@ def test_detail_parser_splits_persian_comma_title():
     )
     assert draft.brand == "کی ام سی"
     assert draft.model == "K7"
+
+    draft = parser.parse(
+        "<html><body><h1>تویوتا،  کمری</h1></body></html>",
+        url="https://bama.ir/car/detail-toyota-camry",
+        bama_id="toyota-camry",
+    )
+    assert draft.brand == "تویوتا"
+    assert draft.model == "کمری"
 
 
 def test_detail_parser_extracts_fields():

@@ -113,3 +113,27 @@ class AdvertisementRepository:
 
         stmt = stmt.order_by(Advertisement.crawled_at.desc()).limit(limit)
         return list(self._session.scalars(stmt))
+
+    def repair_labels_from_titles(self) -> int:
+        """Re-apply the detail title splitter to rows that still have a brand،model H1."""
+        from crawler.adapters.bama.parsers import split_bama_title
+
+        rows = list(
+            self._session.scalars(
+                select(Advertisement).where(Advertisement.title.contains("،"))
+            )
+        )
+        repaired = 0
+        for ad in rows:
+            brand, model = split_bama_title(ad.title)
+            if not brand:
+                continue
+            if ad.brand == brand and (not model or ad.model == model):
+                continue
+            ad.brand = brand
+            if model:
+                ad.model = model
+            repaired += 1
+        if repaired:
+            self._session.flush()
+        return repaired

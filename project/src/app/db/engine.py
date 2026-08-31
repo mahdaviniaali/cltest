@@ -38,9 +38,26 @@ def init_db() -> None:
 
 
 def upgrade_schema(engine_instance=None) -> None:
-    from app.db.migrate import upgrade_schema as _upgrade
+    from sqlalchemy import inspect as sa_inspect
+    from sqlalchemy.orm import sessionmaker
 
-    _upgrade(engine_instance or engine)
+    from app.db.migrate import upgrade_schema as _upgrade
+    from app.repositories.advertisement_repository import AdvertisementRepository
+
+    eng = engine_instance or engine
+    _upgrade(eng)
+    if not sa_inspect(eng).has_table("advertisements"):
+        return
+    session = sessionmaker(bind=eng)()
+    try:
+        repaired = AdvertisementRepository(session).repair_labels_from_titles()
+        if repaired:
+            session.commit()
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
 
 
 def recover_interrupted_jobs(engine_instance=None) -> None:

@@ -105,6 +105,46 @@ def test_list_matching_filter_partial_brand(db_session):
     assert len(matches) == 1
 
 
+def test_list_matching_filter_when_taxonomy_brand_is_longer(db_session):
+    db_session.add(
+        Advertisement(
+            bama_id="porsche-2",
+            url="https://bama.ir/car/detail-porsche-2",
+            title="پورشه،  پانامرا",
+            brand="پورشه",
+            model="پانامرا",
+            crawled_at=datetime.now(timezone.utc),
+        )
+    )
+    db_session.commit()
+
+    repo = AdvertisementRepository(db_session)
+    matches = repo.list_matching_filter(brand="پورشه Porsche", model="پانامرا", limit=10)
+    assert len(matches) == 1
+
+
+def test_repair_labels_from_titles(db_session):
+    title = "برند چند کلمه‌ای،  مدل نمونه"
+    db_session.add(
+        Advertisement(
+            bama_id="split-1",
+            url="https://bama.ir/car/detail-split-1",
+            title=title,
+            brand=title.split()[0],
+            model=title.split()[1],
+            crawled_at=datetime.now(timezone.utc),
+        )
+    )
+    db_session.commit()
+
+    repo = AdvertisementRepository(db_session)
+    assert repo.repair_labels_from_titles() == 1
+    db_session.commit()
+    ad = repo.get_by_bama_id("split-1")
+    assert ad.brand == "برند چند کلمه‌ای"
+    assert ad.model == "مدل نمونه"
+
+
 def test_update_search_clears_brand(client, db_session):
     from app.models.search import Search
 

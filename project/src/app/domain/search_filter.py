@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from typing import Any, Optional
 
-from sqlalchemy import or_
+from sqlalchemy import func, literal, or_
 
 from crawler.domain.labels import normalize_label
 
@@ -98,10 +98,21 @@ def ad_matches_search_criteria(
 
 
 def sql_brand_match(column, brand: str):
+    """Same rule as brand_matches_filter: either side may be a substring of the other.
+
+    Taxonomy labels are often longer than the H1 brand (e.g. extra Latin), so
+    results SQL must not be one-directional.
+    """
     norm_brand = normalize_for_match(brand)
     if not norm_brand:
         return None
-    return or_(column == norm_brand, column.like(f"%{norm_brand}%"))
+    return or_(
+        column == norm_brand,
+        column.like(f"%{norm_brand}%"),
+        (column.isnot(None))
+        & (column != "")
+        & literal(norm_brand).like(func.concat("%", column, "%")),
+    )
 
 
 def sql_model_match(model_col, title_col, model: str):
