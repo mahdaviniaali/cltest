@@ -17,7 +17,8 @@ not_authoritative_for:
 | Topic | Owner | verify |
 |---|---|---|
 | Entrypoint & run flow | [`current_state/entrypoint.md`](current_state/entrypoint.md) | `project/main.py` |
-| Persistence (advertisements) | [`current_state/persistence.md`](current_state/persistence.md) | `project/src/app/` |
+| API routes (searches, taxonomy, inspector stats) | [`current_state/api.md`](current_state/api.md) | `project/src/app/api/` |
+| Persistence (advertisements, taxonomy) | [`current_state/persistence.md`](current_state/persistence.md) | `project/src/app/` |
 | Frontend status | [`current_state/frontend.md`](current_state/frontend.md) | `frontend/` |
 
 ## Platform Dependency
