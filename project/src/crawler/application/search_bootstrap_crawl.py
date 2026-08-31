@@ -8,8 +8,9 @@ from sqlalchemy.orm import Session
 
 from app.models.search import Search
 from app.repositories.advertisement_repository import AdvertisementRepository
-from app.services.city_taxonomy_sync import CityTaxonomySync
+from app.repositories.search_bootstrap_metrics_repository import SearchBootstrapMetricsRepository
 from app.repositories.search_repository import SearchRepository
+from app.services.city_taxonomy_sync import CityTaxonomySync
 from config import settings
 from crawler.adapters.bama.parsers import BamaDetailParser, BamaListingParser
 from crawler.adapters.db_ad_store import DbAdStore

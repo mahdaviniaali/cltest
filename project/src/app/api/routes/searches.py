@@ -10,6 +10,7 @@ from app.schemas.search import SearchCreate, SearchCreateOut, SearchOut, SearchR
 from app.services.data_preview import DataPreviewService, FilterCriteria
 from app.services.job_dispatch import dispatch_on_demand_job
 from app.services.matching import MatchingService
+from app.services.search_refresh import SearchRefreshService
 from app.services.taxonomy_resolver import resolve_search_taxonomy
 from crawler.application.on_demand_crawl import OnDemandCrawlService
 
