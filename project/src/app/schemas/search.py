@@ -6,8 +6,11 @@ from pydantic import BaseModel, Field
 
 class SearchBase(BaseModel):
     name: Optional[str] = Field(default=None, max_length=128)
+    section_key: str = Field(default="car", max_length=64)
     brand: Optional[str] = Field(default=None, max_length=128)
     model: Optional[str] = Field(default=None, max_length=128)
+    brand_term_id: Optional[int] = None
+    model_term_id: Optional[int] = None
     min_year: Optional[int] = Field(default=None, ge=1300, le=1500)
     max_price: Optional[int] = Field(default=None, ge=0)
     max_mileage: Optional[int] = Field(default=None, ge=0)
@@ -21,8 +24,11 @@ class SearchCreate(SearchBase):
 
 class SearchUpdate(BaseModel):
     name: Optional[str] = Field(default=None, max_length=128)
+    section_key: Optional[str] = Field(default=None, max_length=64)
     brand: Optional[str] = Field(default=None, max_length=128)
     model: Optional[str] = Field(default=None, max_length=128)
+    brand_term_id: Optional[int] = None
+    model_term_id: Optional[int] = None
     min_year: Optional[int] = Field(default=None, ge=1300, le=1500)
     max_price: Optional[int] = Field(default=None, ge=0)
     max_mileage: Optional[int] = Field(default=None, ge=0)

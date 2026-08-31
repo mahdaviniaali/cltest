@@ -9,8 +9,11 @@ export interface Search {
   id: number;
   user_id: number;
   name: string | null;
+  section_key: string;
   brand: string | null;
   model: string | null;
+  brand_term_id: number | null;
+  model_term_id: number | null;
   min_year: number | null;
   max_price: number | null;
   max_mileage: number | null;
@@ -31,8 +34,11 @@ export interface SearchCreateResponse extends Search {
 
 export interface SearchInput {
   name?: string;
+  section_key?: string;
   brand?: string;
   model?: string;
+  brand_term_id?: number;
+  model_term_id?: number;
   min_year?: number;
   max_price?: number;
   max_mileage?: number;
@@ -43,8 +49,11 @@ export interface SearchInput {
 /** PUT /api/searches/{id} — send null to clear a stored criterion. */
 export interface SearchUpdateInput {
   name?: string | null;
+  section_key?: string | null;
   brand?: string | null;
   model?: string | null;
+  brand_term_id?: number | null;
+  model_term_id?: number | null;
   min_year?: number | null;
   max_price?: number | null;
   max_mileage?: number | null;

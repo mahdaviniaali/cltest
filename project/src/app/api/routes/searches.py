@@ -10,7 +10,7 @@ from app.schemas.search import SearchCreate, SearchCreateOut, SearchOut, SearchR
 from app.services.data_preview import DataPreviewService, FilterCriteria
 from app.services.job_dispatch import dispatch_on_demand_job
 from app.services.matching import MatchingService
-from app.services.search_refresh import SearchRefreshService
+from app.services.taxonomy_resolver import resolve_search_taxonomy
 from crawler.application.on_demand_crawl import OnDemandCrawlService
 
 router = APIRouter(prefix="/searches", tags=["searches"])
@@ -36,7 +36,8 @@ def create_search(
     db: Session = Depends(get_db),
 ) -> SearchCreateOut:
     repo = SearchRepository(db)
-    search = repo.create(current_user.id, payload.model_dump())
+    data = resolve_search_taxonomy(db, payload.model_dump())
+    search = repo.create(current_user.id, data)
 
     on_demand = OnDemandCrawlService(db)
     evaluation = on_demand.evaluate_search(search.id, current_user.id)
@@ -136,10 +137,21 @@ def update_search(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Search not found")
 
     data = payload.model_dump(exclude_unset=True)
-    filter_fields = {"brand", "model", "min_year", "max_price", "max_mileage", "location"}
+    filter_fields = {
+        "section_key",
+        "brand",
+        "model",
+        "brand_term_id",
+        "model_term_id",
+        "min_year",
+        "max_price",
+        "max_mileage",
+        "location",
+    }
     if filter_fields.intersection(data):
         data["bootstrapped_at"] = None
         data["last_bootstrap_job_id"] = None
+    data = resolve_search_taxonomy(db, data)
     updated = repo.update(search, data)
     return _search_out(updated)
 

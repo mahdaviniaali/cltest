@@ -39,6 +39,10 @@ not_authoritative_for:
 | `outbox_events` | `app.models.outbox_event.OutboxEvent` | — |
 | `matches` | `app.models.match.Match` | UNIQUE `(ad_id, search_id)` |
 | `notifications` | `app.models.notification.Notification` | UNIQUE `match_id` |
+| `taxonomy_snapshots` | `app.models.taxonomy.TaxonomySnapshot` | versioned site-map extractions |
+| `taxonomy_terms` | `app.models.taxonomy.TaxonomyTerm` | brand/model/city catalog |
+| `taxonomy_refs` | `app.models.taxonomy.TaxonomyRef` | evidence URLs per term |
+| `search_bootstrap_metrics` | `app.models.taxonomy.SearchBootstrapMetric` | per-bootstrap discovery log |
 
 ## Transactional outbox
 

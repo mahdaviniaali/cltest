@@ -52,6 +52,12 @@ def upgrade_schema(engine: Engine) -> None:
             _add_sqlite_column(engine, "searches", "bootstrapped_at", "DATETIME")
         if "last_bootstrap_job_id" not in existing:
             _add_sqlite_column(engine, "searches", "last_bootstrap_job_id", "VARCHAR(36)")
+        if "section_key" not in existing:
+            _add_sqlite_column(engine, "searches", "section_key", "VARCHAR(64) NOT NULL DEFAULT 'car'")
+        if "brand_term_id" not in existing:
+            _add_sqlite_column(engine, "searches", "brand_term_id", "INTEGER")
+        if "model_term_id" not in existing:
+            _add_sqlite_column(engine, "searches", "model_term_id", "INTEGER")
 
     if inspector.has_table("site_map_groups"):
         existing = _sqlite_columns(engine, "site_map_groups")

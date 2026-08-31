@@ -26,6 +26,15 @@ class Search(Base):
     max_price: Mapped[Optional[int]] = mapped_column(BigInteger)
     max_mileage: Mapped[Optional[int]] = mapped_column(Integer)
     location: Mapped[Optional[str]] = mapped_column(String(256))
+    section_key: Mapped[str] = mapped_column(String(64), nullable=False, default="car")
+    brand_term_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("taxonomy_terms.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    model_term_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("taxonomy_terms.id", ondelete="SET NULL"),
+        nullable=True,
+    )
     enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

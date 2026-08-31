@@ -28,7 +28,9 @@ source: UC-U1..U7 + ADR 005/006
 | `id` | INTEGER PK | |
 | `user_id` | FK → users.id CASCADE | owner |
 | `name` | VARCHAR(128) | optional label |
-| `brand`, `model` | VARCHAR(128) | matching criteria |
+| `section_key` | VARCHAR(64) | `car`, `motorcycle`, `truck` (default `car`) |
+| `brand`, `model` | VARCHAR(128) | matching criteria (display labels) |
+| `brand_term_id`, `model_term_id` | INTEGER FK → taxonomy_terms | optional crawl scope |
 | `min_year` | INTEGER | Persian year |
 | `max_price` | BIGINT | tomans |
 | `max_mileage` | INTEGER | km |

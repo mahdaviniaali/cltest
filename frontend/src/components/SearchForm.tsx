@@ -1,7 +1,8 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "../api/client";
+import { taxonomyApi, type TaxonomySection, type TaxonomyTerm } from "../api/taxonomy";
 import type { Search, SearchInput, SearchUpdateInput } from "../types";
-import AdPreviewPanel, { pollSearchBootstrap, useDataRefresh, useLivePreview } from "./AdPreviewPanel";
+import AdPreviewPanel, { useDataRefresh, useLivePreview } from "./AdPreviewPanel";
 
 interface Props {
   initial?: Search;
@@ -12,8 +13,11 @@ interface Props {
 
 const emptyForm: SearchInput = {
   name: "",
+  section_key: "car",
   brand: "",
   model: "",
+  brand_term_id: undefined,
+  model_term_id: undefined,
   min_year: undefined,
   max_price: undefined,
   max_mileage: undefined,
@@ -25,13 +29,47 @@ export default function SearchForm({ initial, onSubmit, onCancel, isEdit = false
   const [form, setForm] = useState<SearchInput>(emptyForm);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [sections, setSections] = useState<TaxonomySection[]>([]);
+  const [brands, setBrands] = useState<TaxonomyTerm[]>([]);
+  const [models, setModels] = useState<TaxonomyTerm[]>([]);
+  const [taxonomyError, setTaxonomyError] = useState("");
+
+  useEffect(() => {
+    void taxonomyApi
+      .sections()
+      .then(setSections)
+      .catch(() => setTaxonomyError("بارگذاری بخش‌ها ناموفق بود"));
+  }, []);
+
+  useEffect(() => {
+    const section = form.section_key || "car";
+    void taxonomyApi
+      .brands(section)
+      .then(setBrands)
+      .catch(() => setBrands([]));
+  }, [form.section_key]);
+
+  useEffect(() => {
+    const section = form.section_key || "car";
+    if (!form.brand_term_id) {
+      setModels([]);
+      return;
+    }
+    void taxonomyApi
+      .models(section, form.brand_term_id)
+      .then(setModels)
+      .catch(() => setModels([]));
+  }, [form.section_key, form.brand_term_id]);
 
   useEffect(() => {
     if (initial) {
       setForm({
         name: initial.name ?? "",
+        section_key: initial.section_key ?? "car",
         brand: initial.brand ?? "",
         model: initial.model ?? "",
+        brand_term_id: initial.brand_term_id ?? undefined,
+        model_term_id: initial.model_term_id ?? undefined,
         min_year: initial.min_year ?? undefined,
         max_price: initial.max_price ?? undefined,
         max_mileage: initial.max_mileage ?? undefined,
@@ -72,6 +110,51 @@ export default function SearchForm({ initial, onSubmit, onCancel, isEdit = false
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
+  function onSectionChange(sectionKey: string) {
+    setForm((prev) => ({
+      ...prev,
+      section_key: sectionKey,
+      brand: "",
+      model: "",
+      brand_term_id: undefined,
+      model_term_id: undefined,
+    }));
+  }
+
+  function onBrandChange(brandId: string) {
+    if (!brandId) {
+      setForm((prev) => ({
+        ...prev,
+        brand: "",
+        model: "",
+        brand_term_id: undefined,
+        model_term_id: undefined,
+      }));
+      return;
+    }
+    const term = brands.find((b) => String(b.id) === brandId);
+    setForm((prev) => ({
+      ...prev,
+      brand: term?.label ?? "",
+      brand_term_id: term?.id,
+      model: "",
+      model_term_id: undefined,
+    }));
+  }
+
+  function onModelChange(modelId: string) {
+    if (!modelId) {
+      setForm((prev) => ({ ...prev, model: "", model_term_id: undefined }));
+      return;
+    }
+    const term = models.find((m) => String(m.id) === modelId);
+    setForm((prev) => ({
+      ...prev,
+      model: term?.label ?? "",
+      model_term_id: term?.id,
+    }));
+  }
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setSubmitting(true);
@@ -80,8 +163,11 @@ export default function SearchForm({ initial, onSubmit, onCancel, isEdit = false
       if (isEdit) {
         await onSubmit({
           name: form.name?.trim() ? form.name.trim() : null,
+          section_key: form.section_key ?? "car",
           brand: form.brand?.trim() ? form.brand.trim() : null,
           model: form.model?.trim() ? form.model.trim() : null,
+          brand_term_id: form.brand_term_id ?? null,
+          model_term_id: form.model_term_id ?? null,
           min_year: form.min_year ?? null,
           max_price: form.max_price ?? null,
           max_mileage: form.max_mileage ?? null,
@@ -92,6 +178,7 @@ export default function SearchForm({ initial, onSubmit, onCancel, isEdit = false
         await onSubmit({
           ...form,
           name: form.name || undefined,
+          section_key: form.section_key || "car",
           brand: form.brand || undefined,
           model: form.model || undefined,
           location: form.location || undefined,
@@ -104,6 +191,15 @@ export default function SearchForm({ initial, onSubmit, onCancel, isEdit = false
     }
   }
 
+  const sectionOptions =
+    sections.length > 0
+      ? sections
+      : [
+          { section_key: "car", label: "خودرو", brand_count: 0, model_count: 0 },
+          { section_key: "motorcycle", label: "موتورسیکلت", brand_count: 0, model_count: 0 },
+          { section_key: "truck", label: "وانت و کامیون", brand_count: 0, model_count: 0 },
+        ];
+
   return (
     <>
       <form className="form panel" onSubmit={handleSubmit}>
@@ -112,16 +208,48 @@ export default function SearchForm({ initial, onSubmit, onCancel, isEdit = false
           نام فیلتر (اختیاری)
           <input value={form.name ?? ""} onChange={(e) => setField("name", e.target.value)} />
         </label>
+        <label>
+          بخش
+          <select value={form.section_key ?? "car"} onChange={(e) => onSectionChange(e.target.value)}>
+            {sectionOptions.map((s) => (
+              <option key={s.section_key} value={s.section_key}>
+                {s.label}
+              </option>
+            ))}
+          </select>
+        </label>
         <div className="grid-2">
           <label>
             برند
-            <input value={form.brand ?? ""} onChange={(e) => setField("brand", e.target.value)} placeholder="تویوتا" />
+            <select
+              value={form.brand_term_id ? String(form.brand_term_id) : ""}
+              onChange={(e) => onBrandChange(e.target.value)}
+            >
+              <option value="">— انتخاب برند —</option>
+              {brands.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.label}
+                </option>
+              ))}
+            </select>
           </label>
           <label>
             مدل
-            <input value={form.model ?? ""} onChange={(e) => setField("model", e.target.value)} placeholder="کمری" />
+            <select
+              value={form.model_term_id ? String(form.model_term_id) : ""}
+              onChange={(e) => onModelChange(e.target.value)}
+              disabled={!form.brand_term_id}
+            >
+              <option value="">— انتخاب مدل —</option>
+              {models.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.label}
+                </option>
+              ))}
+            </select>
           </label>
         </div>
+        {taxonomyError && <p className="muted">{taxonomyError}</p>}
         <div className="grid-2">
           <label>
             حداقل سال

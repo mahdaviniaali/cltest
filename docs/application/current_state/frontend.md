@@ -43,6 +43,7 @@ not_authoritative_for:
 | UC-U5 | Delete filter |
 | UC-U6 | Toggle enable/disable |
 | UC-U7 | Multiple filters per user |
+| — | Search form: section + brand/model cascading selects from `/api/taxonomy/*` |
 
 ## Run
 
