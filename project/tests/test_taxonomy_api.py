@@ -114,3 +114,16 @@ def test_taxonomy_sections(client, db_session):
     sections = {s["section_key"]: s for s in response.json()}
     assert sections["car"]["brand_count"] == 1
     assert sections["car"]["model_count"] == 1
+
+
+def test_taxonomy_harvest_endpoint(client, db_session, monkeypatch):
+    def fake_refresh(_db):
+        return {"brands": 12, "models": 40, "snapshot_id": 3}
+
+    monkeypatch.setattr("app.api.routes.taxonomy.refresh_taxonomy_catalog", fake_refresh)
+    response = client.post("/api/taxonomy/harvest")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["brands"] == 12
+    assert body["models"] == 40
+    assert body["snapshot_id"] == 3

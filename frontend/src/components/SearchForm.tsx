@@ -1,4 +1,4 @@
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../api/client";
 import { taxonomyApi, type TaxonomySection, type TaxonomyTerm } from "../api/taxonomy";
 import type { Search, SearchInput, SearchUpdateInput } from "../types";
@@ -34,6 +34,8 @@ export default function SearchForm({ initial, onSubmit, onCancel, isEdit = false
   const [models, setModels] = useState<TaxonomyTerm[]>([]);
   const [cities, setCities] = useState<string[]>([]);
   const [taxonomyError, setTaxonomyError] = useState("");
+  const [catalogLoading, setCatalogLoading] = useState(false);
+  const harvestedRef = useRef(false);
 
   useEffect(() => {
     void taxonomyApi
@@ -44,23 +46,56 @@ export default function SearchForm({ initial, onSubmit, onCancel, isEdit = false
 
   useEffect(() => {
     const section = form.section_key || "car";
-    void taxonomyApi
-      .brands(section)
-      .then(setBrands)
-      .catch(() => setBrands([]));
+    let cancelled = false;
+    void (async () => {
+      try {
+        let rows = await taxonomyApi.brands(section);
+        if (!cancelled && rows.length === 0 && !harvestedRef.current) {
+          setCatalogLoading(true);
+          await taxonomyApi.harvest();
+          harvestedRef.current = true;
+          rows = await taxonomyApi.brands(section);
+        }
+        if (!cancelled) setBrands(rows);
+      } catch {
+        if (!cancelled) {
+          setBrands([]);
+          setTaxonomyError("بارگذاری برندها ناموفق بود — می‌توانید خودتان بنویسید");
+        }
+      } finally {
+        if (!cancelled) setCatalogLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [form.section_key]);
 
   useEffect(() => {
     const section = form.section_key || "car";
-    if (!form.brand_term_id) {
+    const matched = matchTerm(brands, form.brand ?? "");
+    const brandId = form.brand_term_id ?? matched?.id;
+    if (!brandId) {
       setModels([]);
       return;
     }
     void taxonomyApi
-      .models(section, form.brand_term_id)
+      .models(section, brandId)
       .then(setModels)
       .catch(() => setModels([]));
-  }, [form.section_key, form.brand_term_id]);
+  }, [form.section_key, form.brand, form.brand_term_id, brands]);
+
+  useEffect(() => {
+    const brandTerm = matchTerm(brands, form.brand ?? "");
+    const modelTerm = matchTerm(models, form.model ?? "");
+    if (!brandTerm && !modelTerm) return;
+    setForm((prev) => {
+      const nextBrandId = brandTerm?.id ?? prev.brand_term_id;
+      const nextModelId = modelTerm?.id ?? prev.model_term_id;
+      if (prev.brand_term_id === nextBrandId && prev.model_term_id === nextModelId) return prev;
+      return { ...prev, brand_term_id: nextBrandId, model_term_id: nextModelId };
+    });
+  }, [brands, models, form.brand, form.model]);
 
   useEffect(() => {
     const section = form.section_key || "car";
@@ -130,36 +165,25 @@ export default function SearchForm({ initial, onSubmit, onCancel, isEdit = false
     }));
   }
 
-  function onBrandChange(brandId: string) {
-    if (!brandId) {
-      setForm((prev) => ({
+  function onBrandInput(value: string) {
+    const term = matchTerm(brands, value);
+    setForm((prev) => {
+      const brandChanged = term?.id !== prev.brand_term_id;
+      return {
         ...prev,
-        brand: "",
-        model: "",
-        brand_term_id: undefined,
-        model_term_id: undefined,
-      }));
-      return;
-    }
-    const term = brands.find((b) => String(b.id) === brandId);
-    setForm((prev) => ({
-      ...prev,
-      brand: term?.label ?? "",
-      brand_term_id: term?.id,
-      model: "",
-      model_term_id: undefined,
-    }));
+        brand: value,
+        brand_term_id: term?.id,
+        model: brandChanged ? "" : prev.model,
+        model_term_id: brandChanged ? undefined : prev.model_term_id,
+      };
+    });
   }
 
-  function onModelChange(modelId: string) {
-    if (!modelId) {
-      setForm((prev) => ({ ...prev, model: "", model_term_id: undefined }));
-      return;
-    }
-    const term = models.find((m) => String(m.id) === modelId);
+  function onModelInput(value: string) {
+    const term = matchTerm(models, value);
     setForm((prev) => ({
       ...prev,
-      model: term?.label ?? "",
+      model: value,
       model_term_id: term?.id,
     }));
   }
@@ -230,34 +254,40 @@ export default function SearchForm({ initial, onSubmit, onCancel, isEdit = false
         <div className="grid-2">
           <label>
             برند
-            <select
-              value={form.brand_term_id ? String(form.brand_term_id) : ""}
-              onChange={(e) => onBrandChange(e.target.value)}
-            >
-              <option value="">— انتخاب برند —</option>
+            <input
+              list="brand-suggestions"
+              value={form.brand ?? ""}
+              onChange={(e) => onBrandInput(e.target.value)}
+              placeholder="تویوتا یا Toyota"
+              autoComplete="off"
+            />
+            <datalist id="brand-suggestions">
               {brands.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.label}
-                </option>
+                <option key={b.id} value={b.label} />
               ))}
-            </select>
+            </datalist>
           </label>
           <label>
             مدل
-            <select
-              value={form.model_term_id ? String(form.model_term_id) : ""}
-              onChange={(e) => onModelChange(e.target.value)}
-              disabled={!form.brand_term_id}
-            >
-              <option value="">— انتخاب مدل —</option>
+            <input
+              list="model-suggestions"
+              value={form.model ?? ""}
+              onChange={(e) => onModelInput(e.target.value)}
+              placeholder="کمری یا Camry"
+              autoComplete="off"
+            />
+            <datalist id="model-suggestions">
               {models.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.label}
-                </option>
+                <option key={m.id} value={m.label} />
               ))}
-            </select>
+            </datalist>
           </label>
         </div>
+        <p className="muted">
+          {catalogLoading
+            ? "در حال دریافت برند و مدل از باما…"
+            : "می‌توانید برند و مدل را خودتان بنویسید یا از پیشنهادها انتخاب کنید."}
+        </p>
         {taxonomyError && <p className="muted">{taxonomyError}</p>}
         <div className="grid-2">
           <label>
@@ -330,6 +360,15 @@ export default function SearchForm({ initial, onSubmit, onCancel, isEdit = false
         refreshing={refreshing}
       />
     </>
+  );
+}
+
+function matchTerm(terms: TaxonomyTerm[], value: string): TaxonomyTerm | undefined {
+  const needle = value.trim().toLowerCase();
+  if (!needle) return undefined;
+  return (
+    terms.find((t) => t.label.toLowerCase() === needle || t.slug.toLowerCase() === needle) ??
+    terms.find((t) => t.slug.replace(/-/g, " ").toLowerCase() === needle)
   );
 }
 

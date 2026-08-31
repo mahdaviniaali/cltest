@@ -11,6 +11,7 @@ from app.models.match import Match
 from app.models.search import Search
 from app.repositories.advertisement_repository import AdvertisementRepository
 from app.repositories.outbox_repository import OutboxRepository
+from app.repositories.search_repository import SearchRepository
 from config import settings
 
 logger = logging.getLogger(__name__)
@@ -20,6 +21,7 @@ class MatchingService:
     def __init__(self, session: Session) -> None:
         self._session = session
         self._ads = AdvertisementRepository(session)
+        self._searches = SearchRepository(session)
         self._outbox = OutboxRepository(session)
 
     def process_new_ad(self, ad_id: int) -> list[Match]:
@@ -27,11 +29,9 @@ class MatchingService:
         if ad is None:
             raise ValueError(f"Ad not found: {ad_id}")
 
-        enabled_searches = list(
-            self._session.scalars(select(Search).where(Search.enabled.is_(True)))
-        )
+        candidates = self._searches.list_candidates_for_ad(ad)
         created: list[Match] = []
-        for search in enabled_searches:
+        for search in candidates:
             if not self._matches(ad, search):
                 continue
             match = self._create_match(ad.id, search.id)

@@ -91,10 +91,11 @@ class FilterCrawlService:
             is_crawling=True,
         )
 
-    def enqueue_stale_active_filters(self, *, limit: int = 20) -> list[str]:
+    def enqueue_stale_active_filters(self, *, limit: int | None = None) -> list[str]:
+        batch_limit = limit if limit is not None else settings.CRAWL_BEAT_FILTER_LIMIT
         stale = self._states.list_stale_active(
             max_age_seconds=settings.CRAWL_INTERVAL_SECONDS,
-            limit=limit,
+            limit=batch_limit,
         )
         job_ids: list[str] = []
         for state in stale:

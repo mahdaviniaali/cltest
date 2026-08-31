@@ -34,4 +34,13 @@ export const taxonomyApi = {
     ),
   cities: (section: string) =>
     request<TaxonomyCity[]>(`/api/taxonomy/cities?section=${encodeURIComponent(section)}`),
+  harvest: () =>
+    request<TaxonomyHarvest>(`/api/taxonomy/harvest`, { method: "POST" }),
 };
+
+export interface TaxonomyHarvest {
+  brands: number;
+  models: number;
+  snapshot_id: number | null;
+  skipped: boolean;
+}

@@ -134,3 +134,17 @@ def upgrade_schema(engine: Engine) -> None:
         existing = _sqlite_columns(engine, "searches")
         if "filter_fingerprint" not in existing:
             _add_sqlite_column(engine, "searches", "filter_fingerprint", "VARCHAR(64)")
+
+    _ensure_search_indexes(engine)
+
+
+def _ensure_search_indexes(engine: Engine) -> None:
+    """Add composite indexes for filter/brand user lookup (ADR-011)."""
+    indexes = [
+        ("ix_searches_fingerprint_enabled", "searches", "filter_fingerprint, enabled"),
+        ("ix_searches_brand_term_enabled", "searches", "brand_term_id, enabled"),
+        ("ix_searches_brand_enabled", "searches", "brand, enabled"),
+    ]
+    with engine.begin() as conn:
+        for name, table, cols in indexes:
+            conn.execute(text(f"CREATE INDEX IF NOT EXISTS {name} ON {table} ({cols})"))

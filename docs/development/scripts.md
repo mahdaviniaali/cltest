@@ -60,3 +60,37 @@ python scripts/cleanup_stale_jobs.py --force  # fail/cancel all in-flight jobs n
 
 - DB init: [`application/current_state/persistence.md`](../application/current_state/persistence.md)
 - Job stale recovery: `CrawlJobRepository.reconcile_stale_running_jobs` in app code; `cleanup_stale_jobs.py` for manual ops
+
+## Stress / load tests
+
+Default `pytest` **excludes** stress tests (`pytest.ini` → `-m "not stress"`).
+
+| Command | Purpose |
+|---|---|
+| `pytest` | Fast unit/integration suite (no stress) |
+| `pytest -m stress` | In-process stress tests (FakeFetcher, Bama network killswitch) |
+| `STRESS_SCALE=heavy pytest -m stress` | Larger datasets (~5k ads) |
+| `STRESS_REPORT_JSON=1 pytest -m stress` | Write `tests/stress/reports/session_metrics.json` |
+| `locust -f tests/load/locustfile.py --headless -u 200 -r 40 -t 3m --host http://127.0.0.1:8000` | HTTP hammer on **local API** (start uvicorn first) |
+
+### Metrics collected
+
+| Metric | pytest `-m stress` | Locust |
+|---|---|---|
+| RPS | yes | yes |
+| P50 / P95 / P99 | yes | yes |
+| Error rate | yes | yes |
+| CPU / Memory | yes (`psutil`) | yes (`psutil`) |
+| DB latency / query count | yes (SQLAlchemy events) | n/a (server-side) |
+| Redis hit rate | yes (instrumented client) | n/a (server-side) |
+| Network latency | yes (request round-trip) | yes (HTTP) |
+| Throughput (B/s) | yes | yes |
+
+SLO thresholds (env overrides): `STRESS_MAX_ERROR_RATE`, `STRESS_MAX_P99_MS`, `STRESS_MAX_DB_P99_MS`, `STRESS_MAX_DB_QPR`, `STRESS_MIN_RPS`, `STRESS_MAX_CPU_PCT`, `STRESS_MAX_MEMORY_MB`, `STRESS_MIN_REDIS_HIT_RATE`.
+
+Rules:
+
+- Stress pytest never calls `bama.ir` — `tests/stress/conftest.py` fails on outbound Bama fetch.
+- Locust defaults to read-heavy tasks; set `STRESS_ALLOW_CRAWL=1` only if you accept crawl job enqueue on the server.
+- Run Locust against docker-compose `api` + `postgres` for realistic concurrency (SQLite is single-writer).
+- Locust JSON report: `tests/load/reports/locust_metrics.json`; set `STRESS_ASSERT_SLO=1` to fail on threshold breach.

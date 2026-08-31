@@ -154,6 +154,35 @@ export interface FilterCrawlStat {
   active_job_status?: string | null;
 }
 
+export interface HealthReady {
+  status: string;
+  checks: Record<string, string>;
+}
+
+export interface CrawlJobSummary {
+  id: string;
+  job_type: string;
+  status: string;
+  triggered_by: string;
+  search_id?: number | null;
+  pages_crawled: number;
+  ads_found: number;
+  ads_new: number;
+  error?: string | null;
+  started_at?: string | null;
+  finished_at?: string | null;
+  created_at: string;
+}
+
+export interface CrawlStatus {
+  last_seen_bama_id?: string | null;
+  last_crawl_at?: string | null;
+  last_run_job_id?: string | null;
+  latest_job?: CrawlJobSummary | null;
+  is_refreshing: boolean;
+  last_updated_at?: string | null;
+}
+
 export const inspectorApi = {
   startSiteMap(maxPages?: number, maxDepth?: number) {
     return request<SiteMapJob>("/api/inspector/site-map/start", {
@@ -201,5 +230,23 @@ export const inspectorApi = {
   },
   getFilterCrawls() {
     return request<FilterCrawlStat[]>("/api/admin/filter-crawls");
+  },
+  async getHealthReady() {
+    const token = localStorage.getItem("bama_token");
+    const headers = new Headers({ "Content-Type": "application/json" });
+    if (token) headers.set("Authorization", `Bearer ${token}`);
+    const response = await fetch("/api/health/ready", { headers });
+    return (await response.json()) as HealthReady;
+  },
+  async getCrawlStatus() {
+    const [status, dataStatus] = await Promise.all([
+      request<Omit<CrawlStatus, "is_refreshing" | "last_updated_at">>("/api/crawl/status"),
+      request<{ last_updated_at?: string | null; is_refreshing: boolean }>("/api/data/status"),
+    ]);
+    return {
+      ...status,
+      is_refreshing: dataStatus.is_refreshing,
+      last_updated_at: dataStatus.last_updated_at,
+    } satisfies CrawlStatus;
   },
 };

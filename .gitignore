@@ -37,6 +37,10 @@ project/data/*.db-wal
 # Ad-hoc debug scripts (see docs/development/scripts.md)
 project/scripts/_scratch/
 
+# Stress test reports
+project/tests/stress/reports/
+project/tests/load/reports/
+
 # Frontend
 frontend/node_modules/
 frontend/dist/

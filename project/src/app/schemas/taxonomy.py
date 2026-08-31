@@ -29,3 +29,10 @@ class TaxonomyCityResponse(BaseModel):
     id: int
     label: str
     section_key: str
+
+
+class TaxonomyHarvestResponse(BaseModel):
+    brands: int = 0
+    models: int = 0
+    snapshot_id: Optional[int] = None
+    skipped: bool = False

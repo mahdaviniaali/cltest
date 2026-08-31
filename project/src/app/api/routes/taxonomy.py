@@ -8,9 +8,15 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_current_user, get_db
 from app.models.user import User
 from app.services.city_taxonomy_sync import CityTaxonomySync
+from app.services.taxonomy_harvest_sync import refresh_taxonomy_catalog
 from app.repositories.site_section_repository import SiteSectionRepository
 from app.repositories.taxonomy_repository import TaxonomyRepository
-from app.schemas.taxonomy import TaxonomyCityResponse, TaxonomySectionResponse, TaxonomyTermResponse
+from app.schemas.taxonomy import (
+    TaxonomyCityResponse,
+    TaxonomyHarvestResponse,
+    TaxonomySectionResponse,
+    TaxonomyTermResponse,
+)
 
 router = APIRouter(prefix="/taxonomy", tags=["taxonomy"])
 
@@ -80,6 +86,21 @@ def list_brands(
 ) -> list[TaxonomyTermResponse]:
     terms = TaxonomyRepository(db).list_terms(section_key=section, term_type="brand")
     return [_term_response(t) for t in terms]
+
+
+@router.post("/harvest", response_model=TaxonomyHarvestResponse)
+def harvest_taxonomy(
+    db: Session = Depends(get_db),
+    _user: User = Depends(get_current_user),
+) -> TaxonomyHarvestResponse:
+    summary = refresh_taxonomy_catalog(db)
+    db.commit()
+    return TaxonomyHarvestResponse(
+        brands=int(summary.get("brands") or 0),
+        models=int(summary.get("models") or 0),
+        snapshot_id=summary.get("snapshot_id"),
+        skipped=bool(summary.get("skipped")),
+    )
 
 
 @router.get("/models", response_model=list[TaxonomyTermResponse])

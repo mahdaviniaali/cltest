@@ -144,3 +144,40 @@ def test_taxonomy_builder_deactivates_stale_terms(db_session):
     assert len(active) == 1
     assert active[0].slug == "bmw"
     assert repo.count_stale_terms(term_type="brand") == 1
+
+
+def test_taxonomy_builder_hyphenated_model_urls(db_session):
+    config = load_bama_site_config()
+    _add_node(
+        db_session,
+        page_key="brand-pride",
+        url="https://bama.ir/car/pride",
+        depth=1,
+        page_type="model_hub",
+        section="car",
+        title="پراید",
+    )
+    _add_node(
+        db_session,
+        page_key="model-pride-111",
+        url="https://bama.ir/car/pride-111",
+        depth=1,
+        page_type="model_hub",
+        section="car",
+        title="پراید 111",
+        parent_page_key="brand-pride",
+    )
+    db_session.commit()
+
+    summary = TaxonomyBuilder(db_session, config, job_id="job-hyphen").build()
+    db_session.commit()
+
+    assert summary["brands"] == 1
+    assert summary["models"] == 1
+    repo = TaxonomyRepository(db_session)
+    brands = repo.list_terms(section_key="car", term_type="brand")
+    models = repo.list_terms(section_key="car", term_type="model")
+    assert brands[0].slug == "pride"
+    assert models[0].slug == "111"
+    assert models[0].parent_id == brands[0].id
+    assert models[0].listing_url == "https://bama.ir/car/pride-111"

@@ -27,6 +27,8 @@ not_authoritative_for:
 | `celery` | 5.4.0 |
 | `redis` | 5.0.0 |
 | `pytest` | 8.0.0 |
+| `locust` | 2.29.0 (stress/load tests only) |
+| `psutil` | 6.0.0 (CPU/memory sampling in stress tests) |
 
 ## Crawl Infrastructure Tools
 

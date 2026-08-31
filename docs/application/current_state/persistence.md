@@ -33,7 +33,7 @@ not_authoritative_for:
 |---|---|---|
 | `advertisements` | `app.models.advertisement.Advertisement` | UNIQUE `bama_id` |
 | `users` | `app.models.user.User` | UNIQUE `email` |
-| `searches` | `app.models.search.Search` | FK `user_id` → users; indexed `filter_fingerprint` |
+| `searches` | `app.models.search.Search` | FK `user_id` → users; indexes on `filter_fingerprint`, `(filter_fingerprint, enabled)`, `(brand_term_id, enabled)`, `(brand, enabled)` |
 | `filter_crawl_states` | `app.models.filter_crawl_state.FilterCrawlState` | PK `fingerprint` — shared per-filter checkpoint + freshness |
 | `crawler_state` | `app.models.crawler_state.CrawlerState` | PK `source_key` (global + per-filter via `bama:{section}:filter:{hash}`) |
 | `crawl_jobs` | `app.models.crawl_job.CrawlJob` | UNIQUE `idempotency_key` |
@@ -75,6 +75,14 @@ New ads: `DbAdStore.save_new` inserts ad + `outbox_events` (`ad.created`) in one
 | `update(search, data)` | patch fields |
 | `delete(search)` | remove |
 | `toggle_enabled(search)` | flip enabled flag |
+| `list_enabled_by_fingerprint(fingerprint)` | enabled searches sharing exact filter (ADR-011) |
+| `list_enabled_by_brand_term(brand_term_id)` | enabled searches for taxonomy brand |
+| `list_enabled_by_brand(brand)` | enabled searches by brand label |
+| `list_candidates_for_ad(ad)` | SQL pre-filter for matching |
+
+## Beat scheduling (ADR-011)
+
+Stale active fingerprints enqueued by Celery Beat ordered by `enabled_search_count DESC`, then oldest `last_crawl_at`. Budget: `CRAWL_BEAT_FILTER_LIMIT` (default 20) per tick.
 
 ## API Entry
 
@@ -92,3 +100,4 @@ New ads: `DbAdStore.save_new` inserts ad + `outbox_events` (`ad.created`) in one
 | `DATABASE_URL` | `sqlite:///data/app.db` |
 | `JWT_SECRET_KEY` | dev placeholder |
 | `CORS_ORIGINS` | `http://localhost:5173` |
+| `CRAWL_BEAT_FILTER_LIMIT` | `20` |

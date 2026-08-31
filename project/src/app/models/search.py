@@ -15,6 +15,9 @@ class Search(Base):
     __table_args__ = (
         Index("idx_searches_user_id", "user_id"),
         Index("idx_searches_enabled", "enabled"),
+        Index("ix_searches_fingerprint_enabled", "filter_fingerprint", "enabled"),
+        Index("ix_searches_brand_term_enabled", "brand_term_id", "enabled"),
+        Index("ix_searches_brand_enabled", "brand", "enabled"),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)

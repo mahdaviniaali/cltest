@@ -6,7 +6,7 @@ from app.api.deps import get_current_user, get_db
 from app.models.user import User
 from app.repositories.search_repository import SearchRepository
 from app.schemas.crawl import AdOut, DataPreviewOut
-from app.schemas.search import SearchCreate, SearchCreateOut, SearchOut, SearchRefreshOut, SearchUpdate
+from app.schemas.search import SearchCreate, SearchCreateOut, SearchOut, SearchRefreshOut, SearchUpdate, SearchUpdateOut
 from app.services.data_preview import DataPreviewService, FilterCriteria
 from app.services.job_dispatch import dispatch_on_demand_job
 from app.services.matching import MatchingService
@@ -125,13 +125,13 @@ def get_search(
     return _search_out(search)
 
 
-@router.put("/{search_id}", response_model=SearchOut)
+@router.put("/{search_id}", response_model=SearchUpdateOut)
 def update_search(
     search_id: int,
     payload: SearchUpdate,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-) -> SearchOut:
+) -> SearchUpdateOut:
     repo = SearchRepository(db)
     search = repo.get_for_user(current_user.id, search_id)
     if search is None:
@@ -149,16 +149,51 @@ def update_search(
         "max_mileage",
         "location",
     }
-    if filter_fields.intersection(data):
+    filter_changed = bool(filter_fields.intersection(data))
+    if filter_changed:
         data["bootstrapped_at"] = None
         data["last_bootstrap_job_id"] = None
     data = resolve_search_taxonomy(db, data)
     updated = repo.update(search, data)
-    if filter_fields.intersection(data):
+
+    job_id: str | None = None
+    is_crawling = False
+    cached_count = 0
+    cache_sufficient = False
+
+    if filter_changed:
         from app.services.filter_crawl_service import FilterCrawlService
 
-        FilterCrawlService(db).prepare_search(updated)
-    return _search_out(updated)
+        filter_crawl = FilterCrawlService(db)
+        filter_crawl.prepare_search(updated)
+        on_demand = OnDemandCrawlService(db)
+        cache = on_demand.evaluate_cache_for_search(updated)
+        cached_count = cache.cached_count
+        cache_sufficient = cache.sufficient
+
+        enqueue = filter_crawl.enqueue_for_search(
+            updated,
+            triggered_by=f"search_update:{updated.id}",
+        )
+        if enqueue.job_id:
+            dispatch_on_demand_job(enqueue.job_id)
+            job_id = enqueue.job_id
+            is_crawling = enqueue.is_crawling
+        elif cache_sufficient:
+            from datetime import datetime, timezone
+
+            updated.bootstrapped_at = datetime.now(timezone.utc)
+            db.commit()
+            db.refresh(updated)
+            MatchingService(db).match_existing_for_search(updated.id)
+
+    return SearchUpdateOut(
+        **_search_out(updated).model_dump(),
+        cached_count=cached_count,
+        cache_sufficient=cache_sufficient,
+        is_crawling=is_crawling,
+        job_id=job_id,
+    )
 
 
 @router.delete("/{search_id}", status_code=status.HTTP_204_NO_CONTENT)

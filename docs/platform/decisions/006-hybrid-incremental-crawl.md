@@ -104,5 +104,6 @@ Users A and B with identical criteria → one fingerprint, one checkpoint, one c
 ## Related
 
 - [007-transactional-outbox-celery.md](007-transactional-outbox-celery.md)
+- [011-task-job-filter-model.md](011-task-job-filter-model.md) — task taxonomy, scheduling priority, index strategy
 - [hexagonal_crawl_tools.md](../architecture/hexagonal_crawl_tools.md)
 - [open_questions.md](../../application/spec/open_questions.md)

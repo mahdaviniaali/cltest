@@ -68,6 +68,7 @@ Default: `http://127.0.0.1:8000`
 ## Cache-first UX contract
 
 - `POST /api/searches` — saves filter; computes shared `filter_fingerprint`; returns cache when `filter_crawl_states.last_crawl_at` within `CRAWL_STALENESS_SECONDS`, else enqueues `ON_DEMAND_FILTER`; returns `cached_count`, `is_crawling`, `job_id`
+- `PUT /api/searches/{id}` — on filter field change: recomputes `filter_fingerprint`, enqueues crawl if stale, rematches when cache sufficient; returns `filter_fingerprint`, `job_id`, `is_crawling`, `cached_count`, `cache_sufficient`
 - `GET /api/searches/{id}/results` — cached ads + per-filter `last_updated_at`, `bootstrapped`, `cache_sufficient`
 - `POST /api/searches/{id}/refresh` — filter-scoped incremental refresh; dedupes by fingerprint; skips when filter cache fresh
 - `POST /api/ads/preview` — live preview from cache only (no auto-crawl until save)

@@ -111,7 +111,7 @@ class FilterCrawlStateRepository:
     def list_stale_active(self, *, max_age_seconds: int, limit: int = 50) -> list[FilterCrawlState]:
         self.refresh_enabled_counts()
         cutoff = datetime.now(timezone.utc).timestamp() - max_age_seconds
-        rows = self.list_active(limit=limit * 2)
+        rows = self.list_active(limit=limit * 4)
         stale: list[FilterCrawlState] = []
         for row in rows:
             if row.last_crawl_at is None:
@@ -122,9 +122,13 @@ class FilterCrawlStateRepository:
                 ts = ts.replace(tzinfo=timezone.utc)
             if ts.timestamp() <= cutoff:
                 stale.append(row)
-            if len(stale) >= limit:
-                break
-        return stale
+        stale.sort(
+            key=lambda r: (
+                -r.enabled_search_count,
+                r.last_crawl_at.timestamp() if r.last_crawl_at is not None else float("-inf"),
+            )
+        )
+        return stale[:limit]
 
     def ensure_fingerprint_on_search(self, search: Search, listing_url: str) -> FilterFingerprint:
         fp = compute_filter_fingerprint(

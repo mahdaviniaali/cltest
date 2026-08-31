@@ -7,7 +7,7 @@ authority: L5
 maturity: working
 owner: schema-users-searches
 intent: explain
-source: UC-U1..U7 + ADR 005/006
+source: UC-U1..U7 + ADR 005/006/011
 ---
 ```
 
@@ -36,7 +36,27 @@ source: UC-U1..U7 + ADR 005/006
 | `max_mileage` | INTEGER | km |
 | `location` | VARCHAR(256) | |
 | `enabled` | BOOLEAN | default true |
+| `filter_fingerprint` | VARCHAR(64) | SHA256 of canonical criteria — shared crawl unit (ADR-011) |
+| `bootstrapped_at` | TIMESTAMPTZ | when filter cache first satisfied |
+| `last_bootstrap_job_id` | VARCHAR(36) | last crawl job for this search |
 | `created_at`, `updated_at` | TIMESTAMPTZ | |
+
+### Indexes (ADR-011)
+
+| Index | Columns | Use |
+|---|---|---|
+| `ix_searches_fingerprint_enabled` | `filter_fingerprint`, `enabled` | users sharing exact filter |
+| `ix_searches_brand_term_enabled` | `brand_term_id`, `enabled` | taxonomy brand lookup |
+| `ix_searches_brand_enabled` | `brand`, `enabled` | label fallback (e.g. بنز) |
+
+## Filter update flow (ADR-011)
+
+When filter criteria change via `PUT /api/searches/{id}`:
+
+1. Recompute `filter_fingerprint`
+2. Reset `bootstrapped_at` / `last_bootstrap_job_id`
+3. Enqueue `ON_DEMAND_FILTER` if new fingerprint cache is stale
+4. Rematch existing ads when cache is already sufficient
 
 ## Auth (ADR 006)
 

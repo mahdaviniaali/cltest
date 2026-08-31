@@ -2,11 +2,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { inspectorApi, type CrawlEvent, type SiteMapJob } from "../api/inspector";
 
 export function useSiteMapJob(pollMs = 2000) {
+  const [jobs, setJobs] = useState<SiteMapJob[]>([]);
   const [job, setJob] = useState<SiteMapJob | null>(null);
   const [events, setEvents] = useState<CrawlEvent[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const sinceIdRef = useRef(0);
+  const selectedJobIdRef = useRef<string | null>(null);
 
   const refreshJob = useCallback(async (jobId: string) => {
     const data = await inspectorApi.getJob(jobId);
@@ -15,11 +17,31 @@ export function useSiteMapJob(pollMs = 2000) {
   }, []);
 
   const loadJobs = useCallback(async () => {
-    const jobs = await inspectorApi.listJobs();
-    const active = jobs.find((j) => j.status === "running" || j.status === "paused");
-    const latest = active ?? jobs[0] ?? null;
+    const jobsList = await inspectorApi.listJobs();
+    setJobs(jobsList);
+    const selectedId = selectedJobIdRef.current;
+    if (selectedId && jobsList.some((j) => j.job_id === selectedId)) {
+      const selected = jobsList.find((j) => j.job_id === selectedId)!;
+      setJob(selected);
+      return selected;
+    }
+    const active = jobsList.find((j) => j.status === "running" || j.status === "paused");
+    const latest = active ?? jobsList[0] ?? null;
+    if (latest) {
+      selectedJobIdRef.current = latest.job_id;
+    }
     setJob(latest);
     return latest;
+  }, []);
+
+  const selectJob = useCallback(async (jobId: string) => {
+    selectedJobIdRef.current = jobId;
+    sinceIdRef.current = 0;
+    setEvents([]);
+    setError("");
+    const data = await inspectorApi.getJob(jobId);
+    setJob(data);
+    return data;
   }, []);
 
   const pollEvents = useCallback(async (jobId: string) => {
@@ -52,7 +74,9 @@ export function useSiteMapJob(pollMs = 2000) {
       sinceIdRef.current = 0;
       setEvents([]);
       const created = await inspectorApi.startSiteMap(maxPages, maxDepth);
+      selectedJobIdRef.current = created.job_id;
       setJob(created);
+      await loadJobs();
       return created;
     } catch (err) {
       setError(err instanceof Error ? err.message : "خطا");
@@ -77,5 +101,5 @@ export function useSiteMapJob(pollMs = 2000) {
     setJob(await inspectorApi.cancelJob(job.job_id));
   }
 
-  return { job, events, loading, error, start, pause, resume, cancel, loadJobs };
+  return { jobs, job, events, loading, error, start, pause, resume, cancel, loadJobs, selectJob };
 }
