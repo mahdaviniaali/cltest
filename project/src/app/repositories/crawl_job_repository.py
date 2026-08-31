@@ -219,6 +219,20 @@ class CrawlJobRepository:
         self._session.flush()
         return job
 
+    def update_progress(
+        self,
+        job: CrawlJob,
+        *,
+        pages_crawled: int,
+        ads_found: int,
+        ads_new: int,
+    ) -> CrawlJob:
+        job.pages_crawled = pages_crawled
+        job.ads_found = ads_found
+        job.ads_new = ads_new
+        self._session.flush()
+        return job
+
     def mark_completed(
         self,
         job: CrawlJob,

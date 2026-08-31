@@ -6,18 +6,10 @@ import {
   type HealthReady,
   type SiteMapJob,
 } from "../../api/inspector";
+import { fmtJobTime, jobMessage, jobStatusClass, jobStatusLabel } from "../../lib/jobStatus";
 
-function fmtTime(value?: string | null) {
-  if (!value) return "—";
-  return new Date(value).toLocaleString("fa-IR");
-}
-
-function statusClass(status: string) {
-  if (status === "running" || status === "pending") return "status-running";
-  if (status === "paused") return "status-paused";
-  if (status === "failed") return "status-failed";
-  if (status === "completed") return "status-completed";
-  return "";
+function statusClassForFilter(status: string) {
+  return jobStatusClass({ status, pages_crawled: 0 });
 }
 
 export default function InspectorTasksView() {
@@ -92,7 +84,7 @@ export default function InspectorTasksView() {
         {crawlStatus && (
           <dl className="detail-grid task-meta">
             <dt>آخرین crawl</dt>
-            <dd>{fmtTime(crawlStatus.last_crawl_at)}</dd>
+            <dd>{fmtJobTime(crawlStatus.last_crawl_at)}</dd>
             <dt>checkpoint</dt>
             <dd className="mono">{crawlStatus.last_seen_bama_id?.slice(0, 16) ?? "—"}</dd>
             <dt>job آخر</dt>
@@ -111,34 +103,36 @@ export default function InspectorTasksView() {
         {activeSiteMap.length === 0 ? (
           <p className="muted">هیچ site-map job در حال اجرا نیست.</p>
         ) : (
-          <table className="stats-table">
-            <thead>
-              <tr>
-                <th>job</th>
-                <th>وضعیت</th>
-                <th>سطح</th>
-                <th>کرawl</th>
-                <th>کشف</th>
-                <th>خطا</th>
-                <th>شروع</th>
-              </tr>
-            </thead>
-            <tbody>
-              {activeSiteMap.map((job) => (
-                <tr key={job.job_id}>
-                  <td className="mono">{job.job_id.slice(0, 10)}…</td>
-                  <td>
-                    <span className={`status-pill ${statusClass(job.status)}`}>{job.status}</span>
-                  </td>
-                  <td>{job.current_depth}</td>
-                  <td>{job.pages_crawled}</td>
-                  <td>{job.pages_discovered}</td>
-                  <td>{job.pages_failed}</td>
-                  <td>{fmtTime(job.started_at)}</td>
+          <div className="table-scroll">
+            <table className="stats-table">
+              <thead>
+                <tr>
+                  <th>job</th>
+                  <th>وضعیت</th>
+                  <th>سطح</th>
+                  <th>کرawl</th>
+                  <th>کشف</th>
+                  <th>خطا</th>
+                  <th>شروع</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {activeSiteMap.map((job) => (
+                  <tr key={job.job_id}>
+                    <td className="mono">{job.job_id.slice(0, 10)}…</td>
+                    <td>
+                      <span className={`status-pill ${jobStatusClass(job)}`}>{jobStatusLabel(job)}</span>
+                    </td>
+                    <td>{job.current_depth}</td>
+                    <td>{job.pages_crawled}</td>
+                    <td>{job.pages_discovered}</td>
+                    <td>{job.pages_failed}</td>
+                    <td className="cell-time">{fmtJobTime(job.started_at)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </section>
 
@@ -147,35 +141,37 @@ export default function InspectorTasksView() {
         {activeFilters.length === 0 ? (
           <p className="muted">هیچ filter crawl در حال اجرا نیست.</p>
         ) : (
-          <table className="stats-table">
-            <thead>
-              <tr>
-                <th>فیلتر</th>
-                <th>job</th>
-                <th>وضعیت</th>
-                <th>searches</th>
-                <th>آخرین crawl</th>
-              </tr>
-            </thead>
-            <tbody>
-              {activeFilters.map((row) => (
-                <tr key={row.fingerprint}>
-                  <td>
-                    {[row.brand, row.model].filter(Boolean).join(" ") || "—"}
-                    {row.min_year ? ` ≥${row.min_year}` : ""}
-                  </td>
-                  <td className="mono">{row.active_job_id?.slice(0, 10) ?? "—"}</td>
-                  <td>
-                    <span className={`status-pill ${statusClass(row.active_job_status ?? "")}`}>
-                      {row.active_job_status ?? "idle"}
-                    </span>
-                  </td>
-                  <td>{row.enabled_search_count}</td>
-                  <td>{fmtTime(row.last_crawl_at)}</td>
+          <div className="table-scroll">
+            <table className="stats-table">
+              <thead>
+                <tr>
+                  <th>فیلتر</th>
+                  <th>job</th>
+                  <th>وضعیت</th>
+                  <th>searches</th>
+                  <th>آخرین crawl</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {activeFilters.map((row) => (
+                  <tr key={row.fingerprint}>
+                    <td>
+                      {[row.brand, row.model].filter(Boolean).join(" ") || "—"}
+                      {row.min_year ? ` ≥${row.min_year}` : ""}
+                    </td>
+                    <td className="mono">{row.active_job_id?.slice(0, 10) ?? "—"}</td>
+                    <td>
+                      <span className={`status-pill ${statusClassForFilter(row.active_job_status ?? "")}`}>
+                        {jobStatusLabel({ status: row.active_job_status ?? "idle" })}
+                      </span>
+                    </td>
+                    <td>{row.enabled_search_count}</td>
+                    <td className="cell-time">{fmtJobTime(row.last_crawl_at)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </section>
 
@@ -184,36 +180,40 @@ export default function InspectorTasksView() {
         {siteMapJobs.length === 0 ? (
           <p className="muted">هنوز site-map job ثبت نشده.</p>
         ) : (
-          <table className="stats-table">
-            <thead>
-              <tr>
-                <th>job</th>
-                <th>وضعیت</th>
-                <th>کرawl</th>
-                <th>کشف</th>
-                <th>خطا</th>
-                <th>شروع</th>
-                <th>پایان</th>
-                <th>پیام</th>
-              </tr>
-            </thead>
-            <tbody>
-              {siteMapJobs.map((job) => (
-                <tr key={job.job_id}>
-                  <td className="mono">{job.job_id.slice(0, 10)}…</td>
-                  <td>
-                    <span className={`status-pill ${statusClass(job.status)}`}>{job.status}</span>
-                  </td>
-                  <td>{job.pages_crawled}</td>
-                  <td>{job.pages_discovered}</td>
-                  <td>{job.pages_failed}</td>
-                  <td>{fmtTime(job.started_at)}</td>
-                  <td>{fmtTime(job.finished_at)}</td>
-                  <td className="mono">{job.error?.slice(0, 40) ?? "—"}</td>
+          <div className="table-scroll">
+            <table className="stats-table">
+              <thead>
+                <tr>
+                  <th>job</th>
+                  <th>وضعیت</th>
+                  <th>کرawl</th>
+                  <th>کشف</th>
+                  <th>خطا</th>
+                  <th>شروع</th>
+                  <th>پایان</th>
+                  <th>پیام</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {siteMapJobs.map((job) => (
+                  <tr key={job.job_id}>
+                    <td className="mono">{job.job_id.slice(0, 10)}…</td>
+                    <td>
+                      <span className={`status-pill ${jobStatusClass(job)}`}>{jobStatusLabel(job)}</span>
+                    </td>
+                    <td>{job.pages_crawled}</td>
+                    <td>{job.pages_discovered}</td>
+                    <td>{job.pages_failed}</td>
+                    <td className="cell-time">{fmtJobTime(job.started_at)}</td>
+                    <td className="cell-time">{fmtJobTime(job.finished_at)}</td>
+                    <td className="cell-clip" title={job.error ?? ""}>
+                      {jobMessage(job)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </section>
 
@@ -227,8 +227,8 @@ export default function InspectorTasksView() {
             <dd>{crawlStatus.latest_job.job_type}</dd>
             <dt>وضعیت</dt>
             <dd>
-              <span className={`status-pill ${statusClass(crawlStatus.latest_job.status)}`}>
-                {crawlStatus.latest_job.status}
+              <span className={`status-pill ${jobStatusClass(crawlStatus.latest_job)}`}>
+                {jobStatusLabel(crawlStatus.latest_job)}
               </span>
             </dd>
             <dt>صفحات</dt>
@@ -238,9 +238,9 @@ export default function InspectorTasksView() {
               {crawlStatus.latest_job.ads_found} ({crawlStatus.latest_job.ads_new} جدید)
             </dd>
             <dt>شروع</dt>
-            <dd>{fmtTime(crawlStatus.latest_job.started_at)}</dd>
+            <dd>{fmtJobTime(crawlStatus.latest_job.started_at)}</dd>
             <dt>پایان</dt>
-            <dd>{fmtTime(crawlStatus.latest_job.finished_at)}</dd>
+            <dd>{fmtJobTime(crawlStatus.latest_job.finished_at)}</dd>
             {crawlStatus.latest_job.error && (
               <>
                 <dt>خطا</dt>

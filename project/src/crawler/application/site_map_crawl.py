@@ -17,8 +17,7 @@ from config.bama_site import BamaSiteConfig, load_bama_site_config
 from crawler.adapters.bama.page_classifier import BamaPageClassifier
 from crawler.adapters.http_page_fetcher import HttpPageFetcher
 from crawler.adapters.link_extractor import LinkExtractor
-from crawler.application.site_catalog_builder import SiteCatalogBuilder
-from crawler.application.site_map_projection_builder import SiteMapProjectionBuilder
+from crawler.application.site_map_artifacts import rebuild_site_map_artifacts
 from crawler.core.http_client import HttpClient
 from crawler.domain.crawl_policy import CrawlPolicy, parse_sitemap_locs, url_in_scope
 from crawler.domain.link_scorer import score_url
@@ -275,21 +274,22 @@ class SiteMapCrawlService:
         if self._level_pages > 0:
             self._emit_level_completed(self._current_depth, queue, queued_keys)
 
-        if stopped_reason == "completed":
-            catalog = SiteCatalogBuilder(self._session, self._config)
-            sections = catalog.build()
-            map_groups = SiteMapProjectionBuilder(self._session, self._config).build()
-            from crawler.application.taxonomy_builder import TaxonomyBuilder
-
-            taxonomy_summary = TaxonomyBuilder(self._session, self._config, job_id=self._job_id).build()
+        artifacts = rebuild_site_map_artifacts(
+            self._session,
+            self._config,
+            job_id=self._job_id,
+            include_taxonomy=stopped_reason == "completed" or self._pages_crawled > 0,
+        )
+        if artifacts["map_groups"] or artifacts["sections"]:
             self._events.emit(
                 job_id=self._job_id,
-                event_type="job_completed",
+                event_type="job_completed" if stopped_reason == "completed" else "map_rebuilt",
                 payload={
-                    "sections": sections,
-                    "map_groups": len(map_groups),
-                    "taxonomy": taxonomy_summary,
+                    "sections": artifacts["sections"],
+                    "map_groups": artifacts["map_groups"],
+                    "taxonomy": artifacts["taxonomy"],
                     "pages_crawled": self._pages_crawled,
+                    "stopped_reason": stopped_reason,
                 },
             )
 

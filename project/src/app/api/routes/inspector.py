@@ -10,7 +10,6 @@ from app.models.crawl_job import CrawlJobType
 from app.models.user import User
 from app.repositories.crawl_event_repository import CrawlEventRepository
 from app.repositories.crawl_job_repository import CrawlJobRepository
-from app.repositories.site_section_repository import SiteSectionRepository
 from app.schemas.inspector import (
     CrawlEventResponse,
     SearchDiscoveryResponse,
@@ -201,7 +200,7 @@ def site_sections(
     db: Session = Depends(get_db),
     _user: User = Depends(get_current_user),
 ) -> list[SiteSectionResponse]:
-    sections = SiteSectionRepository(db).list_all()
+    sections = InspectorService(db).list_sections()
     return [
         SiteSectionResponse(
             section_key=s.section_key,

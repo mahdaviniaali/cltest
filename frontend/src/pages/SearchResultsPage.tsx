@@ -15,9 +15,11 @@ export default function SearchResultsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const loadResults = useCallback(async () => {
+  const loadResults = useCallback(async (opts?: { silent?: boolean }) => {
     if (!searchId) return;
-    setLoading(true);
+    if (!opts?.silent) {
+      setLoading(true);
+    }
     setError("");
     try {
       const [searchData, previewData] = await Promise.all([
@@ -33,7 +35,9 @@ export default function SearchResultsPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "خطا در بارگذاری");
     } finally {
-      setLoading(false);
+      if (!opts?.silent) {
+        setLoading(false);
+      }
     }
   }, [searchId]);
 
@@ -44,8 +48,8 @@ export default function SearchResultsPage() {
   useEffect(() => {
     if (!preview?.is_refreshing) return;
     const id = window.setInterval(() => {
-      void loadResults().catch(() => undefined);
-    }, 5000);
+      void loadResults({ silent: true }).catch(() => undefined);
+    }, 2000);
     return () => window.clearInterval(id);
   }, [preview?.is_refreshing, loadResults]);
 

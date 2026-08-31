@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import logging
+
 from sqlalchemy.orm import Session
 
-from app.models.crawl_job import CrawlJobStatus, CrawlJobType
+from app.models.crawl_job import CrawlJobType
 from app.repositories.crawl_job_repository import CrawlJobRepository
 from config import settings
 from crawler.adapters.bama.parsers import BamaDetailParser, BamaListingParser
@@ -10,9 +12,30 @@ from crawler.adapters.db_ad_store import DbAdStore, DbCrawlCheckpointStore
 from crawler.adapters.http_page_fetcher import DelayedPageFetcher, HttpPageFetcher
 from crawler.application.incremental_crawl import IncrementalCrawlService
 from crawler.application.listing_url_resolver import resolve_listing_url
+from crawler.application.site_map_artifacts import rebuild_site_map_artifacts
 from crawler.application.site_map_crawl import SiteMapCrawlService
 from crawler.core.http_client import HttpClient
 from config.bama_site import load_bama_site_config
+
+logger = logging.getLogger(__name__)
+
+
+def _persist_job_progress(session: Session, job_id: str):
+    jobs = CrawlJobRepository(session)
+
+    def _on_progress(pages_crawled: int, ads_found: int, ads_new: int) -> None:
+        job = jobs.get(job_id)
+        if job is None:
+            return
+        jobs.update_progress(
+            job,
+            pages_crawled=pages_crawled,
+            ads_found=ads_found,
+            ads_new=ads_new,
+        )
+        session.commit()
+
+    return _on_progress
 
 
 def run_incremental_job(session: Session, job_id: str) -> None:
@@ -39,6 +62,7 @@ def run_incremental_job(session: Session, job_id: str) -> None:
         listing_url=listing_url,
         max_pages=settings.CRAWL_MAX_PAGES,
         job_id=job_id,
+        on_progress=_persist_job_progress(session, job_id),
     )
 
     try:
@@ -88,7 +112,7 @@ def run_filter_incremental_job(session: Session, job_id: str) -> None:
     )
 
     try:
-        result = service.run()
+        result = service.run(on_progress=_persist_job_progress(session, job_id))
         jobs.mark_completed(
             job,
             pages_crawled=result.pages_crawled,
@@ -175,6 +199,10 @@ def run_site_map_job(
             )
         session.commit()
     except Exception as exc:
+        try:
+            rebuild_site_map_artifacts(session, config, job_id=job_id)
+        except Exception:
+            logger.exception("site-map projection rebuild after failure skipped")
         jobs.mark_failed(job, str(exc))
         session.commit()
         raise

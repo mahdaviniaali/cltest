@@ -54,7 +54,13 @@ export default function AdPreviewPanel({
       </div>
 
       {(preview?.is_refreshing || refreshing) && (
-        <p className="refresh-banner">در حال جستجو در bama.ir و بروزرسانی cache...</p>
+        <p className="refresh-banner">
+          در حال جستجو در bama.ir
+          {preview && (preview.pages_crawled || preview.ads_found)
+            ? ` — صفحه ${preview.pages_crawled ?? 0}، ${preview.ads_found ?? 0} آگهی پیدا شد` +
+              (preview.ads_new ? ` (${preview.ads_new} جدید)` : "")
+            : " و بروزرسانی cache..."}
+        </p>
       )}
 
       {loading && <p className="muted">در حال بارگذاری پیش‌نمایش...</p>}

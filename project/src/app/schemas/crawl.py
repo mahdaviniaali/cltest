@@ -37,6 +37,9 @@ class DataPreviewOut(BaseModel):
     is_refreshing: bool
     bootstrapped: bool = False
     cache_sufficient: bool = False
+    pages_crawled: int = 0
+    ads_found: int = 0
+    ads_new: int = 0
 
 
 class DataStatusOut(BaseModel):

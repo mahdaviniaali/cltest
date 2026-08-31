@@ -31,6 +31,9 @@ class DataPreviewResult:
     is_refreshing: bool
     bootstrapped: bool = False
     cache_sufficient: bool = False
+    pages_crawled: int = 0
+    ads_found: int = 0
+    ads_new: int = 0
 
 
 class DataPreviewService:
@@ -84,6 +87,7 @@ class DataPreviewService:
         cache = OnDemandCrawlService(self._session).evaluate_cache_for_search(search)
         refresh_svc = SearchRefreshService(self._session)
         last_updated = refresh_svc.max_matching_crawled_at(search) or result.last_updated_at
+        job = self._jobs.get_active_for_search(search.id)
         return DataPreviewResult(
             ads=result.ads,
             total_count=result.total_count,
@@ -91,6 +95,9 @@ class DataPreviewService:
             is_refreshing=self._is_refreshing_for_search(search.id),
             bootstrapped=search.bootstrapped_at is not None,
             cache_sufficient=cache.sufficient,
+            pages_crawled=job.pages_crawled if job else 0,
+            ads_found=job.ads_found if job else 0,
+            ads_new=job.ads_new if job else 0,
         )
 
     def status(self) -> tuple[Optional[datetime], bool]:

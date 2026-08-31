@@ -258,8 +258,10 @@ h3 {
 /* Inspector */
 .inspector-page {
   max-width: 1400px;
+  width: 100%;
   margin: 0 auto;
   padding: 1.5rem 1rem 3rem;
+  overflow-x: hidden;
 }
 
 .inspector-control {
@@ -301,9 +303,15 @@ h3 {
 
 .inspector-grid {
   display: grid;
-  grid-template-columns: 260px 1fr 280px;
+  grid-template-columns: minmax(0, 260px) minmax(0, 1fr) minmax(0, 280px);
   gap: 1rem;
   min-height: 520px;
+  width: 100%;
+  min-width: 0;
+}
+
+.inspector-grid-solo {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .inspector-sidebar,
@@ -314,14 +322,20 @@ h3 {
   padding: 1rem;
   box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06);
   overflow: auto;
+  min-width: 0;
 }
 
 .inspector-main {
   min-height: 480px;
+  overflow: hidden;
 }
 
 .graph-panel {
   height: 420px;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+  position: relative;
 }
 
 .tab-row {
@@ -448,6 +462,15 @@ h3 {
 
 .sitemap-panel {
   height: 480px;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+  position: relative;
+}
+
+.sitemap-panel .react-flow {
+  width: 100%;
+  height: 100%;
 }
 
 .sitemap-node-btn {
@@ -724,8 +747,15 @@ h3 {
   font-size: 0.9rem;
 }
 
+.job-select-field {
+  min-width: 0;
+  flex: 1 1 200px;
+}
+
 .job-select-field select {
-  min-width: 220px;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
 }
 
 .job-error {
@@ -881,6 +911,19 @@ h3 {
 
 .table-scroll {
   overflow-x: auto;
+  max-width: 100%;
+}
+
+.cell-clip {
+  max-width: 12rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cell-time {
+  white-space: nowrap;
+  font-size: 0.8rem;
 }
 
 .row-warning {
@@ -979,7 +1022,8 @@ h3 {
 }
 
 @media (max-width: 960px) {
-  .inspector-grid {
-    grid-template-columns: 1fr;
+  .inspector-grid,
+  .inspector-grid-solo {
+    grid-template-columns: minmax(0, 1fr);
   }
 }

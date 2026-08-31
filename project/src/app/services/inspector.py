@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections import defaultdict
+import logging
 from typing import Optional
 from urllib.parse import urlparse
 from uuid import uuid4
@@ -8,12 +8,17 @@ from uuid import uuid4
 from sqlalchemy.orm import Session
 
 from app.models.crawl_job import CrawlJobStatus, CrawlJobType
+from app.models.site_map import SiteSection
 from app.repositories.crawl_event_repository import CrawlEventRepository
 from app.repositories.crawl_job_repository import CrawlJobRepository
 from app.repositories.site_map_group_repository import SiteMapGroupRepository
 from app.repositories.site_node_repository import SiteEdgeRepository, SiteNodeRepository
 from app.repositories.site_section_repository import SiteSectionRepository
 from app.schemas.inspector import SiteMapGroupNode, SiteTreeNode
+from config.bama_site import load_bama_site_config
+from crawler.application.site_map_artifacts import rebuild_site_map_artifacts
+
+logger = logging.getLogger(__name__)
 
 
 class InspectorService:
@@ -99,6 +104,26 @@ class InspectorService:
 
         return self._convert_tree(tree_root)
 
+    def list_sections(self) -> list[SiteSection]:
+        self._ensure_map_projection()
+        return self._sections.list_all()
+
+    def _ensure_map_projection(self) -> None:
+        if self._map_groups.list_all():
+            return
+        if self._nodes.count() == 0:
+            return
+        try:
+            rebuild_site_map_artifacts(
+                self._session,
+                load_bama_site_config(),
+                include_taxonomy=False,
+            )
+            self._session.commit()
+        except Exception:
+            logger.exception("lazy site-map projection rebuild failed")
+            self._session.rollback()
+
     def _convert_tree(self, node_map: dict[str, dict]) -> list[SiteTreeNode]:
         result: list[SiteTreeNode] = []
         for key in sorted(node_map.keys()):
@@ -133,6 +158,7 @@ class InspectorService:
         return nodes, filtered_edges
 
     def get_site_map(self, *, section: Optional[str] = None) -> tuple[list[SiteMapGroupNode], list[dict[str, str]]]:
+        self._ensure_map_projection()
         groups = self._map_groups.list_all(section=section)
         nodes = [
             SiteMapGroupNode(

@@ -137,3 +137,28 @@ def test_site_tree_and_map(client, db_session):
     data = site_map.json()
     assert len(data["nodes"]) >= 1
     assert len(data["nodes"]) < 20
+
+
+def test_site_map_rebuilds_from_nodes_when_groups_missing(client, db_session):
+    db_session.add(
+        SiteNode(
+            page_key="k-partial",
+            url="https://bama.ir/car",
+            url_pattern="https://bama.ir/car",
+            depth=1,
+            page_type="listing",
+            section="car",
+            title="Car",
+            status="crawled",
+        )
+    )
+    db_session.commit()
+
+    site_map = client.get("/api/inspector/site/map")
+    assert site_map.status_code == 200
+    data = site_map.json()
+    assert len(data["nodes"]) >= 1
+
+    sections = client.get("/api/inspector/site/sections")
+    assert sections.status_code == 200
+    assert len(sections.json()) >= 1

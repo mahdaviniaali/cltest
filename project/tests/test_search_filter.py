@@ -69,6 +69,11 @@ def test_brand_matches_partial_porsche():
     assert brand_matches_filter("پورشه", "پورش") is True
 
 
+def test_model_matches_when_taxonomy_label_is_longer():
+    assert model_matches_filter("206ir type5", "206", ad_title="پژو،  206") is True
+    assert model_matches_filter("پانامرا", "۲۰۶", ad_title="پژو،  206") is False
+
+
 def test_model_matches_multi_word_against_short_model():
     assert model_matches_filter("پورشه پانامرا", "پانامرا", ad_title="پورشه پانامرا") is True
     assert model_matches_filter("پانامرا", "پانامرا") is True
@@ -120,6 +125,24 @@ def test_list_matching_filter_when_taxonomy_brand_is_longer(db_session):
 
     repo = AdvertisementRepository(db_session)
     matches = repo.list_matching_filter(brand="پورشه Porsche", model="پانامرا", limit=10)
+    assert len(matches) == 1
+
+
+def test_list_matching_filter_when_taxonomy_model_is_longer(db_session):
+    db_session.add(
+        Advertisement(
+            bama_id="peugeot-206",
+            url="https://bama.ir/car/detail-peugeot-206",
+            title="پژو،  206",
+            brand="پژو",
+            model="206",
+            crawled_at=datetime.now(timezone.utc),
+        )
+    )
+    db_session.commit()
+
+    repo = AdvertisementRepository(db_session)
+    matches = repo.list_matching_filter(brand="پژو Peugeot", model="206ir type5", limit=10)
     assert len(matches) == 1
 
 

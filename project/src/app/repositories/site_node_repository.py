@@ -4,7 +4,7 @@ from collections.abc import Callable
 from datetime import datetime, timezone
 from typing import Any, Optional
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models.site_map import SiteEdge, SiteNode, SiteNodeStatus
@@ -84,6 +84,12 @@ class SiteNodeRepository:
         if section:
             stmt = stmt.where(SiteNode.section == section)
         return list(self._session.scalars(stmt).all())
+
+    def count(self, *, section: Optional[str] = None) -> int:
+        stmt = select(func.count()).select_from(SiteNode)
+        if section:
+            stmt = stmt.where(SiteNode.section == section)
+        return int(self._session.scalar(stmt) or 0)
 
     def count_by_section(self) -> dict[str, int]:
         nodes = self.list_all(limit=100_000)

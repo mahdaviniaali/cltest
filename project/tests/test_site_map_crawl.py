@@ -35,6 +35,7 @@ def db_session():
     import app.models.crawl_job  # noqa: F401
     import app.models.search  # noqa: F401
     import app.models.site_map  # noqa: F401
+    import app.models.taxonomy  # noqa: F401
     import app.models.user  # noqa: F401
 
     Base.metadata.create_all(bind=engine)
@@ -229,3 +230,51 @@ def test_site_map_continues_when_home_already_visited(db_session):
 
     assert second_result.pages_crawled >= 1
     assert "https://bama.ir/car/toyota" in fetcher2.calls
+
+
+def test_site_map_rebuilds_projection_when_cancelled(db_session):
+    job_id = str(uuid4())
+    jobs = CrawlJobRepository(db_session)
+    jobs.create(
+        job_type=CrawlJobType.SITE_MAP.value,
+        triggered_by="test",
+        idempotency_key=f"cancel:{job_id}",
+        job_id=job_id,
+    )
+    jobs.mark_running(jobs.get(job_id))
+    db_session.commit()
+
+    pages = {
+        "https://bama.ir/": "<html><head><title>Home</title></head><body><a href='/car'>Car</a></body></html>",
+        "https://bama.ir/car": "<html><head><title>Car</title></head><body>listings</body></html>",
+    }
+
+    class CancelAfterFirst(FakeFetcher):
+        def fetch(self, url: str) -> str | None:
+            html = super().fetch(url)
+            jobs.mark_cancelled(jobs.get(job_id))
+            db_session.commit()
+            return html
+
+    config = BamaSiteConfig(
+        seed_urls=["https://bama.ir/"],
+        domain_allow=["bama.ir"],
+        default_max_depth=2,
+        default_max_pages=10,
+    )
+    result = SiteMapCrawlService(
+        db_session,
+        CancelAfterFirst(pages),
+        job_id=job_id,
+        config=config,
+        max_pages=10,
+        max_depth=2,
+    ).run()
+
+    assert result.stopped_reason == "cancelled"
+    assert result.pages_crawled >= 1
+
+    from app.repositories.site_map_group_repository import SiteMapGroupRepository
+
+    groups = SiteMapGroupRepository(db_session).list_all()
+    assert len(groups) >= 1

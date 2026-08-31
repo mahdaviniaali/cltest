@@ -62,6 +62,10 @@ def model_matches_filter(
     if needle == combined or needle in combined or combined in needle:
         return True
 
+    ad_model_norm = normalize_for_match(ad_model)
+    if ad_model_norm and len(ad_model_norm) >= 2 and ad_model_norm in needle:
+        return True
+
     tokens = model_match_tokens(filter_model)
     if len(tokens) <= 1:
         token = tokens[0] if tokens else needle
@@ -121,9 +125,22 @@ def sql_model_match(model_col, title_col, model: str):
         return None
 
     tokens = model_match_tokens(model)
+    reverse = (
+        (model_col.isnot(None))
+        & (model_col != "")
+        & literal(norm_model).like(func.concat("%", model_col, "%"))
+    )
     if len(tokens) <= 1:
         token = tokens[0] if tokens else norm_model
-        return or_(model_col == token, model_col.like(f"%{token}%"), title_col.like(f"%{token}%"))
+        return or_(
+            model_col == token,
+            model_col.like(f"%{token}%"),
+            title_col.like(f"%{token}%"),
+            reverse,
+        )
 
     significant = [t for t in tokens if len(t) >= 3] or tokens
-    return or_(*[or_(model_col.like(f"%{t}%"), title_col.like(f"%{t}%")) for t in significant])
+    return or_(
+        reverse,
+        *[or_(model_col.like(f"%{t}%"), title_col.like(f"%{t}%")) for t in significant],
+    )

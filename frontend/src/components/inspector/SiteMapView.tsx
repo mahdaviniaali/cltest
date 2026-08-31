@@ -142,18 +142,26 @@ export default function SiteMapView({ siteMap, selectedKey, onSelect }: Props) {
   if (!siteMap || siteMap.nodes.length === 0) {
     return (
       <p className="muted">
-        نقشه سایت هنوز ساخته نشده — یک بار crawl کامل کنید یا{" "}
-        <code>python scripts/inspect_data.py --reclassify</code> را اجرا کنید.
+        نقشه سایت هنوز ساخته نشده. اگر crawl قطع شده باشد، صفحات ذخیره‌شده با باز کردن این تب به نقشه تبدیل می‌شوند.
       </p>
     );
   }
 
   return (
     <div className="graph-panel sitemap-panel">
-      <ReactFlow nodes={nodes} edges={edges} fitView nodesDraggable={false}>
+      <ReactFlow
+        nodes={nodes}
+        edges={edges}
+        fitView
+        fitViewOptions={{ padding: 0.2 }}
+        minZoom={0.05}
+        maxZoom={1.5}
+        nodesDraggable={false}
+        proOptions={{ hideAttribution: true }}
+      >
         <Background />
         <Controls />
-        <MiniMap />
+        <MiniMap pannable zoomable />
       </ReactFlow>
     </div>
   );

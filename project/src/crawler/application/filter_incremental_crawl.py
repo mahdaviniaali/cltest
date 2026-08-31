@@ -50,7 +50,7 @@ class FilterIncrementalCrawlService:
         self._max_pages = max_pages or settings.CRAWL_MAX_PAGES
         self._filter_states = FilterCrawlStateRepository(session)
 
-    def run(self) -> FilterIncrementalResult:
+    def run(self, on_progress=None) -> FilterIncrementalResult:
         search = self._session.get(Search, self._search_id)
         if search is None:
             raise ValueError(f"Search not found: {self._search_id}")
@@ -78,6 +78,7 @@ class FilterIncrementalCrawlService:
             listing_url=listing.url,
             max_pages=self._max_pages,
             job_id=self._job_id,
+            on_progress=on_progress,
         )
         result: IncrementalCrawlResult = service.run()
 

@@ -87,3 +87,29 @@ def test_incremental_collects_new_ads_and_outbox(db_session):
 
     state = DbCrawlCheckpointStore(db_session).get_last_seen_bama_id()
     assert state == "1003-renault-megan"
+
+
+def test_incremental_reports_progress_while_saving(db_session):
+    fetcher = FakeFetcher(
+        pages={"https://bama.ir/car": LISTING_PAGE_1},
+        details={
+            "https://bama.ir/car/detail-1003-renault-megan": DETAIL_PAGE_1003,
+            "https://bama.ir/car/detail-1002-renault-megan": DETAIL_PAGE_1002,
+        },
+    )
+    snapshots: list[tuple[int, int, int]] = []
+    service = IncrementalCrawlService(
+        fetcher=fetcher,
+        listing_parser=BamaListingParser(),
+        detail_parser=BamaDetailParser(),
+        ad_store=DbAdStore(db_session),
+        checkpoint_store=DbCrawlCheckpointStore(db_session),
+        listing_url="https://bama.ir/car",
+        max_pages=1,
+        job_id="job-progress",
+        on_progress=lambda pages, found, new: snapshots.append((pages, found, new)),
+    )
+    service.run()
+    assert snapshots[0][0] == 1
+    assert snapshots[-1][1] >= 1
+    assert snapshots[-1][2] >= 1

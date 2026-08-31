@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from typing import Optional
 
 from crawler.domain.entities import AdDraft, IncrementalCrawlResult, ListingCard
@@ -13,6 +14,8 @@ from crawler.domain.ports import (
 )
 
 logger = logging.getLogger(__name__)
+
+ProgressCallback = Callable[[int, int, int], None]
 
 
 class IncrementalCrawlService:
@@ -29,6 +32,7 @@ class IncrementalCrawlService:
         listing_url: str,
         max_pages: int = 10,
         job_id: str,
+        on_progress: ProgressCallback | None = None,
     ) -> None:
         self._fetcher = fetcher
         self._listing_parser = listing_parser
@@ -38,6 +42,7 @@ class IncrementalCrawlService:
         self._listing_url = listing_url
         self._max_pages = max_pages
         self._job_id = job_id
+        self._on_progress = on_progress
 
     def run(self) -> IncrementalCrawlResult:
         last_seen = self._checkpoint.get_last_seen_bama_id()
@@ -56,6 +61,7 @@ class IncrementalCrawlService:
                 break
 
             pages_crawled += 1
+            self._report(pages_crawled, ads_found, ads_new)
             cards = self._listing_parser.parse(html, page=page)
             if not cards:
                 break
@@ -84,6 +90,7 @@ class IncrementalCrawlService:
                 _, created = self._ad_store.save_new(draft)
                 if created:
                     ads_new += 1
+                self._report(pages_crawled, ads_found, ads_new)
 
             if stopped_at_checkpoint:
                 break
@@ -98,6 +105,11 @@ class IncrementalCrawlService:
             newest_bama_id=newest_bama_id,
             stopped_at_checkpoint=stopped_at_checkpoint,
         )
+
+    def _report(self, pages_crawled: int, ads_found: int, ads_new: int) -> None:
+        if self._on_progress is None:
+            return
+        self._on_progress(pages_crawled, ads_found, ads_new)
 
     def _fetch_detail(self, card: ListingCard) -> Optional[AdDraft]:
         html = self._fetcher.fetch(card.url)

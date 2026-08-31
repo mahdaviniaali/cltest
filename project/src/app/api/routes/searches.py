@@ -86,6 +86,9 @@ def get_search_results(
         is_refreshing=result.is_refreshing,
         bootstrapped=result.bootstrapped,
         cache_sufficient=result.cache_sufficient,
+        pages_crawled=result.pages_crawled,
+        ads_found=result.ads_found,
+        ads_new=result.ads_new,
     )
 
 

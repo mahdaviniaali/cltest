@@ -88,6 +88,9 @@ export interface DataPreview {
   is_refreshing: boolean;
   bootstrapped?: boolean;
   cache_sufficient?: boolean;
+  pages_crawled?: number;
+  ads_found?: number;
+  ads_new?: number;
 }
 
 export interface DataStatus {
