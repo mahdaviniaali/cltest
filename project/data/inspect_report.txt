@@ -1,0 +1,8 @@
+﻿.\.venv\Scripts\python : C:\Users\ADMIN\AppData\Local\Programs\Python\Python312\python.exe: can't open file 
+'C:\\Users\\ADMIN\\Desktop\\New folder\\cltest\\project\\scripts\\inspect_data.py': [Errno 2] No such file or directory
+At C:\Users\ADMIN\AppData\Local\Temp\ps-script-87a1c888-bddd-47d1-b018-64f8c20b663e.ps1:115 char:87
++ ... NG='utf-8'; .\.venv\Scripts\python scripts\inspect_data.py 2>&1 | Out ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (C:\Users\ADMIN\...le or directory:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 

@@ -29,8 +29,9 @@ htmlcov/
 .DS_Store
 Thumbs.db
 
-# Crawler output
-project/data/
+# Crawler output (app.db tracked intentionally; exclude SQLite runtime sidecars)
+project/data/*.db-shm
+project/data/*.db-wal
 *.log
 
 # Ad-hoc debug scripts (see docs/development/scripts.md)
