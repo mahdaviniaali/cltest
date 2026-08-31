@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import ads, auth, crawl, inspector, searches
+from app.api.routes import ads, auth, crawl, inspector, searches, taxonomy
 from app.db.engine import recover_interrupted_jobs, upgrade_schema
 from config import settings
 
@@ -30,6 +30,7 @@ app.include_router(searches.router, prefix="/api")
 app.include_router(ads.router, prefix="/api")
 app.include_router(crawl.router, prefix="/api")
 app.include_router(inspector.router, prefix="/api")
+app.include_router(taxonomy.router, prefix="/api")
 
 
 @app.get("/api/health")
