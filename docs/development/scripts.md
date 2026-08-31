@@ -24,7 +24,7 @@ not_authoritative_for:
 | Script | When to use |
 |---|---|
 | `init_db.py` | First-time DB setup or empty `data/app.db` |
-| `inspect_data.py` | Health check; `--reclassify` fixes all node labels + rebuilds sections |
+| `inspect_data.py` | Health check; table counts via `StatsService`; `--reclassify` fixes all node labels + rebuilds sections |
 | `cleanup_stale_jobs.py` | UI stuck on «در حال بروزرسانی» — clear zombie `running`/`pending` jobs |
 
 Run from `project/`:

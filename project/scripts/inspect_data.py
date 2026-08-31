@@ -51,21 +51,17 @@ def main() -> None:
     c.row_factory = sqlite3.Row
 
     print("=== COUNTS ===")
-    for t in [
-        "site_nodes",
-        "site_edges",
-        "site_sections",
-        "site_map_groups",
-        "visited_urls",
-        "crawl_events",
-        "advertisements",
-        "crawl_jobs",
-    ]:
-        try:
-            n = c.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0]
-            print(f"  {t}: {n}")
-        except sqlite3.OperationalError as e:
-            print(f"  {t}: {e}")
+    sys.path.insert(0, str(PROJECT / "src"))
+    sys.path.insert(0, str(PROJECT))
+    from app.db.engine import SessionLocal
+    from app.services.stats_service import StatsService
+
+    session = SessionLocal()
+    try:
+        for row in StatsService(session).table_counts():
+            print(f"  {row.table}: {row.count}")
+    finally:
+        session.close()
 
     print("\n=== SITE SECTIONS ===")
     rows = c.execute(

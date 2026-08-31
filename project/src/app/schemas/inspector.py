@@ -103,3 +103,67 @@ class SitePageDetail(BaseModel):
     status: str
     meta: Optional[dict[str, Any]]
     outbound_links: list[dict[str, str]] = Field(default_factory=list)
+
+
+class TableCountResponse(BaseModel):
+    table: str
+    count: int
+
+
+class SiteCoverageResponse(BaseModel):
+    section: str
+    page_type: str
+    count: int
+
+
+class DepthCountResponse(BaseModel):
+    depth: int
+    count: int
+
+
+class LastSiteMapJobResponse(BaseModel):
+    job_id: Optional[str] = None
+    status: Optional[str] = None
+    pages_crawled: int = 0
+    pages_discovered: int = 0
+    pages_failed: int = 0
+    started_at: Optional[str] = None
+    finished_at: Optional[str] = None
+
+
+class CrawlHealthResponse(BaseModel):
+    total_jobs: int
+    completed: int
+    failed: int
+    running: int
+    site_map_jobs: int
+    avg_pages_discovered: float
+    avg_pages_crawled: float
+
+
+class StatsOverviewResponse(BaseModel):
+    table_counts: list[TableCountResponse]
+    site_coverage: list[SiteCoverageResponse]
+    depth_distribution: list[DepthCountResponse]
+    taxonomy_active_brands: int
+    taxonomy_active_models: int
+    taxonomy_stale_terms: int
+    last_site_map_job: LastSiteMapJobResponse
+    crawl_health: CrawlHealthResponse
+
+
+class SearchDiscoveryResponse(BaseModel):
+    search_id: int
+    name: Optional[str] = None
+    brand: Optional[str] = None
+    model: Optional[str] = None
+    section_key: str
+    enabled: bool
+    bootstrapped_at: Optional[str] = None
+    listing_url: Optional[str] = None
+    pages_crawled: int = 0
+    ads_found: int = 0
+    matching_count: int = 0
+    match_rate: Optional[float] = None
+    low_yield: bool = False
+    metric_at: Optional[str] = None

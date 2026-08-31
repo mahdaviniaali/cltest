@@ -2,13 +2,14 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { inspectorApi, type SiteMap, type SitePageDetail, type SiteSection, type SiteTreeNode } from "../api/inspector";
 import CrawlEventFeed from "../components/inspector/CrawlEventFeed";
+import InspectorStatsView from "../components/inspector/InspectorStatsView";
 import PageDetailPanel from "../components/inspector/PageDetailPanel";
 import SiteMapControl from "../components/inspector/SiteMapControl";
 import SiteMapView from "../components/inspector/SiteMapView";
 import SiteTreeView from "../components/inspector/SiteTreeView";
 import { useSiteMapJob } from "../hooks/useSiteMapJob";
 
-type ViewTab = "tree" | "map";
+type ViewTab = "tree" | "map" | "stats";
 
 export default function InspectorPage() {
   const { job, events, loading, error, start, pause, resume, cancel } = useSiteMapJob();
@@ -123,8 +124,17 @@ export default function InspectorPage() {
             >
               نقشه سایت
             </button>
+            <button
+              type="button"
+              className={tab === "stats" ? "" : "secondary"}
+              onClick={() => setTab("stats")}
+            >
+              آمار
+            </button>
           </div>
-          {tab === "tree" ? (
+          {tab === "stats" ? (
+            <InspectorStatsView />
+          ) : tab === "tree" ? (
             <SiteTreeView
               nodes={tree}
               selectedKey={selectedPageKey}

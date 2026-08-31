@@ -13,6 +13,7 @@ from app.repositories.crawl_job_repository import CrawlJobRepository
 from app.repositories.site_section_repository import SiteSectionRepository
 from app.schemas.inspector import (
     CrawlEventResponse,
+    SearchDiscoveryResponse,
     SiteGraphResponse,
     SiteMapGroupNode,
     SiteMapResponse,
@@ -22,9 +23,16 @@ from app.schemas.inspector import (
     SitePageDetail,
     SiteSectionResponse,
     SiteTreeNode,
+    StatsOverviewResponse,
+    TableCountResponse,
+    SiteCoverageResponse,
+    DepthCountResponse,
+    LastSiteMapJobResponse,
+    CrawlHealthResponse,
 )
 from app.services.inspector import InspectorService
 from app.services.job_dispatch import dispatch_site_map_job
+from app.services.stats_service import StatsService
 
 router = APIRouter(prefix="/inspector", tags=["inspector"])
 
@@ -231,3 +239,36 @@ def page_detail(
         meta=node.meta,
         outbound_links=detail["outbound_links"],
     )
+
+
+@router.get("/stats/overview", response_model=StatsOverviewResponse)
+def stats_overview(
+    db: Session = Depends(get_db),
+    _user: User = Depends(get_current_user),
+) -> StatsOverviewResponse:
+    overview = StatsService(db).get_overview()
+    return StatsOverviewResponse(
+        table_counts=[TableCountResponse(table=t.table, count=t.count) for t in overview.table_counts],
+        site_coverage=[
+            SiteCoverageResponse(section=r.section, page_type=r.page_type, count=r.count)
+            for r in overview.site_coverage
+        ],
+        depth_distribution=[
+            DepthCountResponse(depth=d.depth, count=d.count) for d in overview.depth_distribution
+        ],
+        taxonomy_active_brands=overview.taxonomy_active_brands,
+        taxonomy_active_models=overview.taxonomy_active_models,
+        taxonomy_stale_terms=overview.taxonomy_stale_terms,
+        last_site_map_job=LastSiteMapJobResponse(**overview.last_site_map_job.__dict__),
+        crawl_health=CrawlHealthResponse(**overview.crawl_health.__dict__),
+    )
+
+
+@router.get("/stats/searches", response_model=list[SearchDiscoveryResponse])
+def stats_searches(
+    threshold: int = Query(default=5, ge=0, le=1000),
+    db: Session = Depends(get_db),
+    _user: User = Depends(get_current_user),
+) -> list[SearchDiscoveryResponse]:
+    rows = StatsService(db).get_search_discovery(threshold=threshold)
+    return [SearchDiscoveryResponse.model_validate(row.__dict__) for row in rows]

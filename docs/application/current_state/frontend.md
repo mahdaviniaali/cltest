@@ -30,7 +30,7 @@ not_authoritative_for:
 | `/register` | `RegisterPage` | ثبت‌نام |
 | `/` | `DashboardPage` | لیست و مدیریت فیلترها |
 | `/searches/:id` | `SearchResultsPage` | نتایج فیلتر ذخیره‌شده |
-| `/admin/inspector` | `InspectorPage` | Site map، درخت، نقشه خلاصه، رویدادهای زنده |
+| `/admin/inspector` | `InspectorPage` | Site map، درخت، نقشه خلاصه، آمار discovery، رویدادهای زنده |
 
 ## User Features (implemented)
 

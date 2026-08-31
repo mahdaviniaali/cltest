@@ -92,6 +92,50 @@ export interface SitePageDetail {
   outbound_links: Array<{ page_key: string; url: string; relation_type: string }>;
 }
 
+export interface StatsOverview {
+  table_counts: Array<{ table: string; count: number }>;
+  site_coverage: Array<{ section: string; page_type: string; count: number }>;
+  depth_distribution: Array<{ depth: number; count: number }>;
+  taxonomy_active_brands: number;
+  taxonomy_active_models: number;
+  taxonomy_stale_terms: number;
+  last_site_map_job: {
+    job_id?: string | null;
+    status?: string | null;
+    pages_crawled: number;
+    pages_discovered: number;
+    pages_failed: number;
+    started_at?: string | null;
+    finished_at?: string | null;
+  };
+  crawl_health: {
+    total_jobs: number;
+    completed: number;
+    failed: number;
+    running: number;
+    site_map_jobs: number;
+    avg_pages_discovered: number;
+    avg_pages_crawled: number;
+  };
+}
+
+export interface SearchDiscoveryStat {
+  search_id: number;
+  name?: string | null;
+  brand?: string | null;
+  model?: string | null;
+  section_key: string;
+  enabled: boolean;
+  bootstrapped_at?: string | null;
+  listing_url?: string | null;
+  pages_crawled: number;
+  ads_found: number;
+  matching_count: number;
+  match_rate?: number | null;
+  low_yield: boolean;
+  metric_at?: string | null;
+}
+
 export const inspectorApi = {
   startSiteMap(maxPages?: number, maxDepth?: number) {
     return request<SiteMapJob>("/api/inspector/site-map/start", {
@@ -130,5 +174,11 @@ export const inspectorApi = {
   },
   getPage(pageKey: string) {
     return request<SitePageDetail>(`/api/inspector/pages/${pageKey}`);
+  },
+  getStatsOverview() {
+    return request<StatsOverview>("/api/inspector/stats/overview");
+  },
+  getStatsSearches(threshold = 5) {
+    return request<SearchDiscoveryStat[]>(`/api/inspector/stats/searches?threshold=${threshold}`);
   },
 };

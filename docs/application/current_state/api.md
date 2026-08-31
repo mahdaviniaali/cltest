@@ -48,6 +48,8 @@ Default: `http://127.0.0.1:8000`
 | GET | `/api/inspector/site/graph` | JWT | legacy raw nodes + edges (deprecated) |
 | GET | `/api/inspector/site/sections` | JWT | auto-detected sections |
 | GET | `/api/inspector/pages/{page_key}` | JWT | page detail |
+| GET | `/api/inspector/stats/overview` | JWT | site coverage + taxonomy + crawl health |
+| GET | `/api/inspector/stats/searches` | JWT | per-search bootstrap discovery metrics |
 | GET | `/api/taxonomy/sections` | JWT | vehicle sections + brand/model counts |
 | GET | `/api/taxonomy/brands?section=` | JWT | active brand terms |
 | GET | `/api/taxonomy/models?section=&brand_id=` | JWT | models for a brand |
