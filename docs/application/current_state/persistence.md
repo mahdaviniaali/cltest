@@ -23,6 +23,9 @@ not_authoritative_for:
 | Dev default | SQLite `data/app.db` |
 | Config | `settings.DATABASE_URL` |
 | Init script | `python scripts/init_db.py` |
+| Inspect data | `python scripts/inspect_data.py` |
+| Stale job cleanup | `python scripts/cleanup_stale_jobs.py` |
+| Scripts policy | [`development/scripts.md`](../../development/scripts.md) |
 
 ## Tables
 

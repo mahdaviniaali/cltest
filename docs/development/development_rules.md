@@ -101,6 +101,12 @@ not_authoritative_for:
 - `logging` نه `print`
 - env vars via `python-dotenv` — نه hardcode secret
 
+### Scripts (`project/scripts/`)
+
+- فقط ابزارهای operator commit‌شده — قوانین کامل: [`development/scripts.md`](scripts.md)
+- ممنوع: `test_*`, `diag_*`, `check_*` موقت در `scripts/`؛ بعد از دیباگ حذف یا `_scratch/` (gitignored)
+- اسکریپت جدید → docstring + ثبت در `scripts.md` و `scripts/README.md`
+
 ## Definition of Done
 
 Task تمام نیست مگر:

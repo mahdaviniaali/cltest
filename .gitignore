@@ -33,6 +33,9 @@ Thumbs.db
 project/data/
 *.log
 
+# Ad-hoc debug scripts (see docs/development/scripts.md)
+project/scripts/_scratch/
+
 # Frontend
 frontend/node_modules/
 frontend/dist/

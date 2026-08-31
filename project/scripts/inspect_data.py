@@ -106,13 +106,44 @@ def main() -> None:
     ):
         print(f"  {dict(r)}")
 
+    print("\n=== SEARCHES ===")
+    for r in c.execute(
+        "SELECT id, brand, model, bootstrapped_at, enabled FROM searches ORDER BY id"
+    ):
+        print(
+            f"  id={r['id']} brand={r['brand']!r} model={r['model']!r} "
+            f"bootstrapped={r['bootstrapped_at']} enabled={r['enabled']}"
+        )
+
+    print("\n=== IN-FLIGHT CRAWL JOBS (running/pending) ===")
+    inflight = c.execute(
+        "SELECT id, job_type, status, search_id, pages_crawled, ads_new, "
+        "datetime(started_at), datetime(created_at), error "
+        "FROM crawl_jobs WHERE status IN ('running', 'pending') ORDER BY created_at"
+    ).fetchall()
+    if not inflight:
+        print("  (none)")
+    for r in inflight:
+        print(
+            f"  {r['id'][:8]}… {r['job_type']:18} {r['status']:8} "
+            f"search={r['search_id']} pages={r['pages_crawled']} ads_new={r['ads_new']}"
+        )
+        if r["error"]:
+            print(f"    error: {r['error']}")
+
     print("\n=== RECENT CRAWL JOBS ===")
     for r in c.execute(
-        "SELECT job_type, status, pages_crawled, pages_discovered, pages_failed, "
-        "datetime(started_at), datetime(finished_at) FROM crawl_jobs "
-        "ORDER BY created_at DESC LIMIT 6"
+        "SELECT id, job_type, status, search_id, pages_crawled, ads_found, ads_new, "
+        "datetime(started_at), datetime(finished_at), error FROM crawl_jobs "
+        "ORDER BY created_at DESC LIMIT 8"
     ):
-        print(f"  {r['job_type']:22} {r['status']:10} crawled={r['pages_crawled']} disc={r['pages_discovered']} fail={r['pages_failed']}")
+        print(
+            f"  {r['id'][:8]}… {r['job_type']:18} {r['status']:10} "
+            f"search={r['search_id']} crawled={r['pages_crawled']} "
+            f"ads={r['ads_found']}/{r['ads_new']}"
+        )
+        if r["error"]:
+            print(f"    error: {r['error']}")
 
     # Edge stats
     print("\n=== GRAPH ===")

@@ -1,3 +1,4 @@
+"""Initialize the application database schema."""
 import sys
 from pathlib import Path
 

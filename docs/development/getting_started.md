@@ -30,8 +30,11 @@ source .venv/bin/activate
 pip install -r requirements.txt
 copy .env.example .env    # Windows
 # cp .env.example .env      # Linux/macOS
-python main.py
+python scripts/init_db.py
+python run_api.py
 ```
+
+اسکریپت‌های operator: [`development/scripts.md`](scripts.md).
 
 خروجی JSON در `project/data/` ذخیره می‌شود.
 
