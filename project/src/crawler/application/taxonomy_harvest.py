@@ -14,6 +14,7 @@ from crawler.application.taxonomy_builder import TaxonomyBuilder
 from crawler.core.http_client import HttpClient
 from crawler.domain.crawl_policy import parse_sitemap_locs
 from crawler.domain.robots import extract_sitemap_directives, robots_url_for
+from crawler.domain.taxonomy_labels import REVIEW_HUBS, apply_review_labels, lookup_review_names, parse_review_labels
 from crawler.domain.taxonomy_urls import ClassifiedTaxonomyUrl, classify_taxonomy_urls
 from crawler.domain.url_identity import compute_page_key
 from crawler.domain.url_patterns import infer_url_pattern
@@ -57,6 +58,7 @@ class TaxonomyHarvestService:
         try:
             locs = self._collect_listing_urls()
             classified = classify_taxonomy_urls(locs)
+            classified = apply_review_labels(classified, self._fetch_review_pages(classified))
             if not any(item.term_type == "brand" for item in classified):
                 logger.warning("Taxonomy harvest found no brand URLs")
                 return {"brands": 0, "models": 0, "snapshot_id": None, "skipped": True}
@@ -87,6 +89,32 @@ class TaxonomyHarvestService:
                 seen.add(loc)
                 locs.append(loc)
         return locs
+
+    def _fetch_review_pages(self, classified: list[ClassifiedTaxonomyUrl]) -> dict[str, list[str]]:
+        pages: dict[str, list[str]] = {}
+        catalogs: dict[str, dict] = {}
+        for section, url in REVIEW_HUBS.items():
+            html = self._get_html(url)
+            if not html:
+                continue
+            pages[section] = [html]
+            catalogs[section] = parse_review_labels(html)
+
+        for item in classified:
+            if item.term_type != "brand" or item.section not in pages:
+                continue
+            if lookup_review_names(catalogs[item.section], item) is None:
+                continue
+            html = self._get_html(f"{REVIEW_HUBS[item.section].rstrip('/')}/{item.slug}")
+            if html:
+                pages[item.section].append(html)
+        return pages
+
+    def _get_html(self, url: str) -> str | None:
+        fetch = getattr(self._fetcher, "fetch", None)
+        if callable(fetch):
+            return fetch(url)
+        return self._fetcher.fetch_raw(url)
 
     def _persist_nodes(self, classified: list[ClassifiedTaxonomyUrl], *, job_id: str) -> None:
         brand_keys: dict[tuple[str, str], str] = {}

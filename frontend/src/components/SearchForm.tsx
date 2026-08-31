@@ -366,9 +366,19 @@ export default function SearchForm({ initial, onSubmit, onCancel, isEdit = false
 function matchTerm(terms: TaxonomyTerm[], value: string): TaxonomyTerm | undefined {
   const needle = value.trim().toLowerCase();
   if (!needle) return undefined;
+  const spaced = needle.replace(/-/g, " ");
+  const compactNeedle = needle.replace(/[\s-]+/g, "");
   return (
     terms.find((t) => t.label.toLowerCase() === needle || t.slug.toLowerCase() === needle) ??
-    terms.find((t) => t.slug.replace(/-/g, " ").toLowerCase() === needle)
+    terms.find((t) => t.slug.replace(/-/g, " ").toLowerCase() === spaced) ??
+    terms.find((t) => t.label.toLowerCase().split(/\s+/).some((token) => token === needle)) ??
+    terms.find((t) => {
+      if (compactNeedle.length < 2) return false;
+      const compactLabel = t.label.toLowerCase().replace(/[\s-]+/g, "");
+      const compactSlug = t.slug.toLowerCase().replace(/[\s-]+/g, "");
+      if (compactLabel === compactNeedle || compactSlug === compactNeedle) return true;
+      return compactNeedle.length >= 3 && (compactLabel.includes(compactNeedle) || compactSlug.includes(compactNeedle));
+    })
   );
 }
 

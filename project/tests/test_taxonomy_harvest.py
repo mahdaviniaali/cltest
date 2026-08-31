@@ -65,6 +65,12 @@ def test_taxonomy_harvest_from_sitemaps():
                 "https://bama.ir/sitemap/car": car_xml,
                 "https://bama.ir/sitemap/motorcycle": _sitemap_xml("https://bama.ir/motorcycle/honda"),
                 "https://bama.ir/sitemap/truck": None,
+                "https://bama.ir/car-reviews": (
+                    '<a href="/car-reviews/pride">pride پراید</a>'
+                    '<a href="/car-reviews/pride/111-specs-1">pride 111 پراید 111</a>'
+                    '<script>title:{en:"PRIDE",fa:"پراید"}'
+                    'brand_model_en:"pride 111",brand_model_fa:"پراید 111"</script>'
+                ),
             }
         )
         summary = TaxonomyHarvestService(
@@ -81,6 +87,12 @@ def test_taxonomy_harvest_from_sitemaps():
         assert car_brands == {"porsche", "pride"}
         models = repo.list_terms(section_key="car", term_type="model")
         assert {m.slug for m in models} == {"panamera", "111"}
+        pride = next(t for t in repo.list_terms(section_key="car", term_type="brand") if t.slug == "pride")
+        assert "پراید" in pride.label
+        pride_111 = next(t for t in models if t.slug == "111")
+        assert "پراید" in pride_111.label
+        porsche = next(t for t in repo.list_terms(section_key="car", term_type="brand") if t.slug == "porsche")
+        assert porsche.label == "porsche"
         moto = repo.list_terms(section_key="motorcycle", term_type="brand")
         assert [t.slug for t in moto] == ["honda"]
     finally:
