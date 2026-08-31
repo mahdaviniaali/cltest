@@ -44,7 +44,8 @@ Default: `http://127.0.0.1:8000`
 | GET | `/api/inspector/jobs/{id}` | JWT | job status + counters |
 | GET | `/api/inspector/jobs/{id}/events` | JWT | crawl events (poll `since_id`) |
 | GET | `/api/inspector/site/tree` | JWT | URL path tree |
-| GET | `/api/inspector/site/graph` | JWT | nodes + edges |
+| GET | `/api/inspector/site/map` | JWT | aggregated site map groups (counts + weights from DB) |
+| GET | `/api/inspector/site/graph` | JWT | legacy raw nodes + edges (deprecated) |
 | GET | `/api/inspector/site/sections` | JWT | auto-detected sections |
 | GET | `/api/inspector/pages/{page_key}` | JWT | page detail |
 
@@ -63,4 +64,4 @@ Default: `http://127.0.0.1:8000`
 |---|---|
 | `/` | Dashboard — filter CRUD + live preview in form |
 | `/searches/:id` | Saved filter results + refresh |
-| `/admin/inspector` | Site map control, tree, graph, live events |
+| `/admin/inspector` | Site map control, tree, aggregated map, live events |

@@ -10,9 +10,10 @@ from sqlalchemy.orm import Session
 from app.models.crawl_job import CrawlJobStatus, CrawlJobType
 from app.repositories.crawl_event_repository import CrawlEventRepository
 from app.repositories.crawl_job_repository import CrawlJobRepository
+from app.repositories.site_map_group_repository import SiteMapGroupRepository
 from app.repositories.site_node_repository import SiteEdgeRepository, SiteNodeRepository
 from app.repositories.site_section_repository import SiteSectionRepository
-from app.schemas.inspector import SiteTreeNode
+from app.schemas.inspector import SiteMapGroupNode, SiteTreeNode
 
 
 class InspectorService:
@@ -23,6 +24,7 @@ class InspectorService:
         self._edges = SiteEdgeRepository(session)
         self._events = CrawlEventRepository(session)
         self._sections = SiteSectionRepository(session)
+        self._map_groups = SiteMapGroupRepository(session)
 
     def start_site_map(
         self,
@@ -129,6 +131,34 @@ class InspectorService:
             if e.from_page_key in node_keys and e.to_page_key in node_keys
         ]
         return nodes, filtered_edges
+
+    def get_site_map(self, *, section: Optional[str] = None) -> tuple[list[SiteMapGroupNode], list[dict[str, str]]]:
+        groups = self._map_groups.list_all(section=section)
+        nodes = [
+            SiteMapGroupNode(
+                group_key=g.group_key,
+                parent_group_key=g.parent_group_key,
+                group_kind=g.group_kind,
+                label=g.label,
+                section=g.section,
+                path_prefix=g.path_prefix,
+                url_pattern=g.url_pattern,
+                page_type=g.page_type,
+                page_count=g.page_count,
+                weight=g.weight,
+                inbound_link_count=g.inbound_link_count,
+                representative_page_key=g.representative_page_key,
+                representative_url=g.representative_url,
+                depth=g.depth,
+            )
+            for g in groups
+        ]
+        edges = [
+            {"from": g.parent_group_key, "to": g.group_key, "type": "contains"}
+            for g in groups
+            if g.parent_group_key
+        ]
+        return nodes, edges
 
     def get_page_detail(self, page_key: str) -> Optional[dict]:
         node = self._nodes.get(page_key)

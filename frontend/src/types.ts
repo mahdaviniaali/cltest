@@ -40,6 +40,18 @@ export interface SearchInput {
   enabled?: boolean;
 }
 
+/** PUT /api/searches/{id} — send null to clear a stored criterion. */
+export interface SearchUpdateInput {
+  name?: string | null;
+  brand?: string | null;
+  model?: string | null;
+  min_year?: number | null;
+  max_price?: number | null;
+  max_mileage?: number | null;
+  location?: string | null;
+  enabled?: boolean;
+}
+
 export interface AuthResponse {
   access_token: string;
   token_type: string;

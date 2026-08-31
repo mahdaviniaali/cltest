@@ -119,6 +119,43 @@ class CrawlEvent(Base):
     )
 
 
+class SiteMapGroupKind(str, enum.Enum):
+    ROOT = "root"
+    SECTION = "section"
+    PATH_HUB = "path_hub"
+    PATTERN_CLUSTER = "pattern_cluster"
+
+
+class SiteMapGroup(Base):
+    __tablename__ = "site_map_groups"
+    __table_args__ = (
+        Index("ix_site_map_groups_parent", "parent_group_key"),
+        Index("ix_site_map_groups_section", "section"),
+    )
+
+    group_key: Mapped[str] = mapped_column(String(256), primary_key=True)
+    parent_group_key: Mapped[Optional[str]] = mapped_column(String(256), nullable=True)
+    group_kind: Mapped[str] = mapped_column(String(32), nullable=False)
+    label: Mapped[str] = mapped_column(String(256), nullable=False)
+    section: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    path_prefix: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
+    url_pattern: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
+    page_type: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
+    page_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    weight: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    inbound_link_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    representative_page_key: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    representative_url: Mapped[Optional[str]] = mapped_column(String(2048), nullable=True)
+    depth: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now(),
+    )
+
+
 class SiteSection(Base):
     __tablename__ = "site_sections"
 

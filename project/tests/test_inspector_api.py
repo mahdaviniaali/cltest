@@ -89,7 +89,7 @@ def test_start_site_map_idempotent_when_running(client, db_session):
         mock_dispatch.assert_not_called()
 
 
-def test_site_tree_and_graph(client, db_session):
+def test_site_tree_and_map(client, db_session):
     db_session.add(
         SiteNode(
             page_key="k1",
@@ -104,10 +104,21 @@ def test_site_tree_and_graph(client, db_session):
     )
     db_session.commit()
 
+    from config.bama_site import load_bama_site_config
+    from crawler.application.site_catalog_builder import SiteCatalogBuilder
+    from crawler.application.site_map_projection_builder import SiteMapProjectionBuilder
+
+    config = load_bama_site_config()
+    SiteCatalogBuilder(db_session, config).build()
+    SiteMapProjectionBuilder(db_session, config).build()
+    db_session.commit()
+
     tree = client.get("/api/inspector/site/tree")
     assert tree.status_code == 200
     assert len(tree.json()) >= 1
 
-    graph = client.get("/api/inspector/site/graph")
-    assert graph.status_code == 200
-    assert len(graph.json()["nodes"]) == 1
+    site_map = client.get("/api/inspector/site/map")
+    assert site_map.status_code == 200
+    data = site_map.json()
+    assert len(data["nodes"]) >= 1
+    assert len(data["nodes"]) < 20

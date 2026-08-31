@@ -46,6 +46,28 @@ export interface SiteGraph {
   edges: Array<{ from: string; to: string; type: string }>;
 }
 
+export interface SiteMapGroupNode {
+  group_key: string;
+  parent_group_key?: string | null;
+  group_kind: string;
+  label: string;
+  section?: string | null;
+  path_prefix?: string | null;
+  url_pattern?: string | null;
+  page_type?: string | null;
+  page_count: number;
+  weight: number;
+  inbound_link_count: number;
+  representative_page_key?: string | null;
+  representative_url?: string | null;
+  depth: number;
+}
+
+export interface SiteMap {
+  nodes: SiteMapGroupNode[];
+  edges: Array<{ from: string; to: string; type: string }>;
+}
+
 export interface SiteSection {
   section_key: string;
   label: string;
@@ -99,10 +121,9 @@ export const inspectorApi = {
     const q = section ? `?section=${encodeURIComponent(section)}` : "";
     return request<SiteTreeNode[]>(`/api/inspector/site/tree${q}`);
   },
-  getGraph(section?: string, limit = 300) {
-    const params = new URLSearchParams({ limit: String(limit) });
-    if (section) params.set("section", section);
-    return request<SiteGraph>(`/api/inspector/site/graph?${params}`);
+  getMap(section?: string) {
+    const q = section ? `?section=${encodeURIComponent(section)}` : "";
+    return request<SiteMap>(`/api/inspector/site/map${q}`);
   },
   getSections() {
     return request<SiteSection[]>("/api/inspector/site/sections");

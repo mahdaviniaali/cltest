@@ -3,7 +3,7 @@ from typing import Any, Optional
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from crawler.domain.labels import normalize_label
+from app.domain.search_filter import sql_brand_match, sql_model_match
 from app.models.advertisement import Advertisement
 
 
@@ -92,15 +92,16 @@ class AdvertisementRepository:
             Advertisement.is_sold.is_(False),
         )
         if brand:
-            norm_brand = normalize_label(brand)
-            if norm_brand:
-                brand_col = func.replace(func.replace(func.lower(Advertisement.brand), "،", ""), ",", "")
-                stmt = stmt.where(brand_col == norm_brand.lower())
+            brand_col = func.replace(func.replace(func.lower(Advertisement.brand), "،", ""), ",", "")
+            brand_clause = sql_brand_match(brand_col, brand)
+            if brand_clause is not None:
+                stmt = stmt.where(brand_clause)
         if model:
-            norm_model = normalize_label(model)
-            if norm_model:
-                model_col = func.replace(func.replace(func.lower(Advertisement.model), "،", ""), ",", "")
-                stmt = stmt.where(model_col == norm_model.lower())
+            model_col = func.replace(func.replace(func.lower(Advertisement.model), "،", ""), ",", "")
+            title_col = func.lower(Advertisement.title)
+            model_clause = sql_model_match(model_col, title_col, model)
+            if model_clause is not None:
+                stmt = stmt.where(model_clause)
         if min_year is not None:
             stmt = stmt.where(Advertisement.year >= min_year)
         if max_price is not None:

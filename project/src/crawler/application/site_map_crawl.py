@@ -18,6 +18,7 @@ from crawler.adapters.bama.page_classifier import BamaPageClassifier
 from crawler.adapters.http_page_fetcher import HttpPageFetcher
 from crawler.adapters.link_extractor import LinkExtractor
 from crawler.application.site_catalog_builder import SiteCatalogBuilder
+from crawler.application.site_map_projection_builder import SiteMapProjectionBuilder
 from crawler.core.http_client import HttpClient
 from crawler.domain.crawl_policy import CrawlPolicy, parse_sitemap_locs, url_in_scope
 from crawler.domain.link_scorer import score_url
@@ -277,10 +278,15 @@ class SiteMapCrawlService:
         if stopped_reason == "completed":
             catalog = SiteCatalogBuilder(self._session, self._config)
             sections = catalog.build()
+            map_groups = SiteMapProjectionBuilder(self._session, self._config).build()
             self._events.emit(
                 job_id=self._job_id,
                 event_type="job_completed",
-                payload={"sections": sections, "pages_crawled": self._pages_crawled},
+                payload={
+                    "sections": sections,
+                    "map_groups": len(map_groups),
+                    "pages_crawled": self._pages_crawled,
+                },
             )
 
         self._session.commit()

@@ -1,33 +1,33 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { inspectorApi, type SiteGraph, type SitePageDetail, type SiteSection, type SiteTreeNode } from "../api/inspector";
+import { inspectorApi, type SiteMap, type SitePageDetail, type SiteSection, type SiteTreeNode } from "../api/inspector";
 import CrawlEventFeed from "../components/inspector/CrawlEventFeed";
 import PageDetailPanel from "../components/inspector/PageDetailPanel";
-import SiteGraphView from "../components/inspector/SiteGraphView";
 import SiteMapControl from "../components/inspector/SiteMapControl";
+import SiteMapView from "../components/inspector/SiteMapView";
 import SiteTreeView from "../components/inspector/SiteTreeView";
 import { useSiteMapJob } from "../hooks/useSiteMapJob";
 
-type ViewTab = "tree" | "graph";
+type ViewTab = "tree" | "map";
 
 export default function InspectorPage() {
   const { job, events, loading, error, start, pause, resume, cancel } = useSiteMapJob();
-  const [tab, setTab] = useState<ViewTab>("tree");
+  const [tab, setTab] = useState<ViewTab>("map");
   const [tree, setTree] = useState<SiteTreeNode[]>([]);
-  const [graph, setGraph] = useState<SiteGraph | null>(null);
+  const [siteMap, setSiteMap] = useState<SiteMap | null>(null);
   const [sections, setSections] = useState<SiteSection[]>([]);
   const [selectedSection, setSelectedSection] = useState<string | null>(null);
   const [selectedPageKey, setSelectedPageKey] = useState<string | null>(null);
   const [pageDetail, setPageDetail] = useState<SitePageDetail | null>(null);
 
   const refreshSiteData = useCallback(async () => {
-    const [treeData, graphData, sectionData] = await Promise.all([
+    const [treeData, mapData, sectionData] = await Promise.all([
       inspectorApi.getTree(selectedSection ?? undefined),
-      inspectorApi.getGraph(selectedSection ?? undefined, 300),
+      inspectorApi.getMap(selectedSection ?? undefined),
       inspectorApi.getSections(),
     ]);
     setTree(treeData);
-    setGraph(graphData);
+    setSiteMap(mapData);
     setSections(sectionData);
   }, [selectedSection]);
 
@@ -77,7 +77,7 @@ export default function InspectorPage() {
       <header className="topbar">
         <div>
           <h1>Site Inspector</h1>
-          <p className="muted">مشاهده ساختار bama.ir، گراف لینک‌ها و progress کرawl</p>
+          <p className="muted">مشاهده ساختار bama.ir، نقشه سایت و progress کرawl</p>
         </div>
         <Link to="/" className="link-button">
           بازگشت به داشبورد
@@ -118,10 +118,10 @@ export default function InspectorPage() {
             </button>
             <button
               type="button"
-              className={tab === "graph" ? "" : "secondary"}
-              onClick={() => setTab("graph")}
+              className={tab === "map" ? "" : "secondary"}
+              onClick={() => setTab("map")}
             >
-              گراف
+              نقشه سایت
             </button>
           </div>
           {tab === "tree" ? (
@@ -131,8 +131,8 @@ export default function InspectorPage() {
               onSelect={setSelectedPageKey}
             />
           ) : (
-            <SiteGraphView
-              graph={graph}
+            <SiteMapView
+              siteMap={siteMap}
               selectedKey={selectedPageKey}
               onSelect={setSelectedPageKey}
             />

@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import SearchForm, { SearchSummary } from "../components/SearchForm";
 import { useAuth } from "../context/AuthContext";
-import type { Search, SearchCreateResponse, SearchInput } from "../types";
+import type { Search, SearchCreateResponse, SearchInput, SearchUpdateInput } from "../types";
 
 export default function DashboardPage() {
   const navigate = useNavigate();
@@ -43,7 +43,7 @@ export default function DashboardPage() {
     navigate(`/searches/${created.id}`);
   }
 
-  async function handleUpdate(data: SearchInput) {
+  async function handleUpdate(data: SearchUpdateInput) {
     if (!editing) return;
     await api.updateSearch(editing.id, data);
     setEditing(null);
@@ -99,6 +99,7 @@ export default function DashboardPage() {
       {(showForm || editing) && (
         <SearchForm
           initial={editing ?? undefined}
+          isEdit={Boolean(editing)}
           onSubmit={editing ? handleUpdate : handleCreate}
           onCancel={() => {
             setShowForm(false);

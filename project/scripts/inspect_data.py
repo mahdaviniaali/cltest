@@ -21,6 +21,7 @@ def _maybe_reclassify_nodes() -> None:
     from app.repositories.site_node_repository import SiteNodeRepository
     from config.bama_site import load_bama_site_config
     from crawler.application.site_catalog_builder import SiteCatalogBuilder
+    from crawler.application.site_map_projection_builder import SiteMapProjectionBuilder
 
     config = load_bama_site_config()
     session = SessionLocal()
@@ -31,9 +32,11 @@ def _maybe_reclassify_nodes() -> None:
         else:
             n = repo.reclassify_nodes(config)
         sections = SiteCatalogBuilder(session, config).build()
+        map_groups = SiteMapProjectionBuilder(session, config).build()
         session.commit()
         print(f"Reclassified {n} site nodes")
-        print(f"Rebuilt {len(sections)} site sections\n")
+        print(f"Rebuilt {len(sections)} site sections")
+        print(f"Rebuilt {len(map_groups)} site map groups\n")
     finally:
         session.close()
 
@@ -52,6 +55,7 @@ def main() -> None:
         "site_nodes",
         "site_edges",
         "site_sections",
+        "site_map_groups",
         "visited_urls",
         "crawl_events",
         "advertisements",

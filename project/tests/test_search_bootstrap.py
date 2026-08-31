@@ -72,6 +72,30 @@ def test_bootstrap_crawls_scoped_listing(monkeypatch):
     assert ads_repo.list_matching_filter.called
 
 
+def test_build_search_listing_url_matches_model_tokens(monkeypatch):
+    from types import SimpleNamespace
+
+    from crawler.application.search_listing_url_builder import build_search_listing_url
+
+    session = MagicMock()
+    search = SimpleNamespace(brand="پورش", model="پورشه پانامرا")
+    node = MagicMock()
+    node.url = "https://bama.ir/car/porsche/panamera"
+    node.title = "پورشه پانامرا"
+
+    monkeypatch.setattr(
+        "crawler.application.search_listing_url_builder.resolve_listing_url",
+        lambda _s, section="car": "https://bama.ir/car",
+    )
+    monkeypatch.setattr(
+        "crawler.application.search_listing_url_builder.SiteNodeRepository",
+        lambda _s: MagicMock(list_all=lambda **kwargs: [node]),
+    )
+
+    url = build_search_listing_url(session, search)
+    assert url == "https://bama.ir/car/porsche/panamera"
+
+
 def test_build_search_listing_url_with_brand_model(monkeypatch):
     from crawler.application.search_listing_url_builder import build_search_listing_url
 

@@ -7,6 +7,7 @@ import type {
   Search,
   SearchCreateResponse,
   SearchInput,
+  SearchUpdateInput,
   User,
 } from "../types";
 
@@ -98,7 +99,7 @@ export const api = {
       body: JSON.stringify(data),
     });
   },
-  updateSearch(id: number, data: SearchInput) {
+  updateSearch(id: number, data: SearchUpdateInput) {
     return request<Search>(`/api/searches/${id}`, {
       method: "PUT",
       body: JSON.stringify(data),

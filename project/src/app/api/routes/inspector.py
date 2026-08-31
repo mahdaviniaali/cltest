@@ -14,6 +14,8 @@ from app.repositories.site_section_repository import SiteSectionRepository
 from app.schemas.inspector import (
     CrawlEventResponse,
     SiteGraphResponse,
+    SiteMapGroupNode,
+    SiteMapResponse,
     SiteMapJobResponse,
     SiteMapStartRequest,
     SiteNodeSummary,
@@ -160,6 +162,16 @@ def site_tree(
     _user: User = Depends(get_current_user),
 ) -> list[SiteTreeNode]:
     return InspectorService(db).build_tree(section=section)
+
+
+@router.get("/site/map", response_model=SiteMapResponse)
+def site_map(
+    section: Optional[str] = None,
+    db: Session = Depends(get_db),
+    _user: User = Depends(get_current_user),
+) -> SiteMapResponse:
+    nodes, edges = InspectorService(db).get_site_map(section=section)
+    return SiteMapResponse(nodes=nodes, edges=edges)
 
 
 @router.get("/site/graph", response_model=SiteGraphResponse)

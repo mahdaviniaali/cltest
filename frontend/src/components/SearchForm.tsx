@@ -1,12 +1,13 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "../api/client";
-import type { Search, SearchInput } from "../types";
+import type { Search, SearchInput, SearchUpdateInput } from "../types";
 import AdPreviewPanel, { pollSearchBootstrap, useDataRefresh, useLivePreview } from "./AdPreviewPanel";
 
 interface Props {
   initial?: Search;
-  onSubmit: (data: SearchInput) => Promise<void>;
+  onSubmit: (data: SearchInput | SearchUpdateInput) => Promise<void>;
   onCancel: () => void;
+  isEdit?: boolean;
 }
 
 const emptyForm: SearchInput = {
@@ -20,7 +21,7 @@ const emptyForm: SearchInput = {
   enabled: true,
 };
 
-export default function SearchForm({ initial, onSubmit, onCancel }: Props) {
+export default function SearchForm({ initial, onSubmit, onCancel, isEdit = false }: Props) {
   const [form, setForm] = useState<SearchInput>(emptyForm);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -76,13 +77,26 @@ export default function SearchForm({ initial, onSubmit, onCancel }: Props) {
     setSubmitting(true);
     setError("");
     try {
-      await onSubmit({
-        ...form,
-        name: form.name || undefined,
-        brand: form.brand || undefined,
-        model: form.model || undefined,
-        location: form.location || undefined,
-      });
+      if (isEdit) {
+        await onSubmit({
+          name: form.name?.trim() ? form.name.trim() : null,
+          brand: form.brand?.trim() ? form.brand.trim() : null,
+          model: form.model?.trim() ? form.model.trim() : null,
+          min_year: form.min_year ?? null,
+          max_price: form.max_price ?? null,
+          max_mileage: form.max_mileage ?? null,
+          location: form.location?.trim() ? form.location.trim() : null,
+          enabled: form.enabled,
+        });
+      } else {
+        await onSubmit({
+          ...form,
+          name: form.name || undefined,
+          brand: form.brand || undefined,
+          model: form.model || undefined,
+          location: form.location || undefined,
+        });
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "خطا در ذخیره");
     } finally {

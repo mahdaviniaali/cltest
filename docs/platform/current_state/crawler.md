@@ -16,7 +16,7 @@ Hybrid incremental crawler (ADR 006) with hexagonal ports:
 | Layer | Path |
 |---|---|
 | Domain ports | `crawler/domain/ports.py`, `entities.py` |
-| Application | `crawler/application/incremental_crawl.py`, `on_demand_crawl.py`, `site_map_crawl.py`, `crawl_job_runner.py` |
+| Application | `crawler/application/incremental_crawl.py`, `on_demand_crawl.py`, `site_map_crawl.py`, `site_map_projection_builder.py`, `crawl_job_runner.py` |
 | Domain | `crawler/domain/url_identity.py`, `crawl_policy.py`, `robots.py`, `url_patterns.py`, `link_scorer.py` |
 | Adapters | `crawler/adapters/bama/parsers.py`, `page_classifier.py`, `link_extractor.py`, `http_page_fetcher.py`, `db_ad_store.py` |
 
@@ -40,6 +40,7 @@ Hybrid incremental crawler (ADR 006) with hexagonal ports:
 7. Config-driven page roles (`section_hub`, `model_hub`, `ad_detail`, …) — no ad parsing in site map loop
 8. Persist graph (`site_nodes`, `site_edges`) + events (`level_completed`, `page_fetched`)
 9. Build section catalog (`site_sections`) on completion for incremental crawl routing
+10. Build aggregated site map projection (`site_map_groups`) — hierarchical groups with `page_count` and `weight`; Inspector reads via `GET /api/inspector/site/map` (no per-request aggregation)
 
 ## Incremental logic
 

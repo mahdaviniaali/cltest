@@ -59,6 +59,28 @@ class SiteGraphResponse(BaseModel):
     edges: list[dict[str, str]]
 
 
+class SiteMapGroupNode(BaseModel):
+    group_key: str
+    parent_group_key: Optional[str] = None
+    group_kind: str
+    label: str
+    section: Optional[str] = None
+    path_prefix: Optional[str] = None
+    url_pattern: Optional[str] = None
+    page_type: Optional[str] = None
+    page_count: int
+    weight: int
+    inbound_link_count: int = 0
+    representative_page_key: Optional[str] = None
+    representative_url: Optional[str] = None
+    depth: int = 0
+
+
+class SiteMapResponse(BaseModel):
+    nodes: list[SiteMapGroupNode]
+    edges: list[dict[str, str]]
+
+
 class SiteSectionResponse(BaseModel):
     section_key: str
     label: str

@@ -136,6 +136,10 @@ def update_search(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Search not found")
 
     data = payload.model_dump(exclude_unset=True)
+    filter_fields = {"brand", "model", "min_year", "max_price", "max_mileage", "location"}
+    if filter_fields.intersection(data):
+        data["bootstrapped_at"] = None
+        data["last_bootstrap_job_id"] = None
     updated = repo.update(search, data)
     return _search_out(updated)
 
