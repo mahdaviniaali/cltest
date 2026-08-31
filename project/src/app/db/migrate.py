@@ -27,6 +27,7 @@ def upgrade_schema(engine: Engine) -> None:
         outbox_event,
         search,
         site_map,
+        taxonomy,
         user,
     )
 

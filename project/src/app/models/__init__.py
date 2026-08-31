@@ -5,6 +5,13 @@ from app.models.match import Match
 from app.models.notification import Notification, NotificationStatus
 from app.models.outbox_event import OutboxEvent, OutboxStatus
 from app.models.site_map import CrawlEvent, SiteEdge, SiteNode, SiteSection, VisitedUrl
+from app.models.taxonomy import (
+    SearchBootstrapMetric,
+    TaxonomyRef,
+    TaxonomySnapshot,
+    TaxonomyTerm,
+    TaxonomyTermType,
+)
 
 __all__ = [
     "Advertisement",
@@ -21,5 +28,10 @@ __all__ = [
     "SiteEdge",
     "SiteNode",
     "SiteSection",
+    "SearchBootstrapMetric",
+    "TaxonomyRef",
+    "TaxonomySnapshot",
+    "TaxonomyTerm",
+    "TaxonomyTermType",
     "VisitedUrl",
 ]
