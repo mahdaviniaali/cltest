@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.models.search import Search
 from app.repositories.advertisement_repository import AdvertisementRepository
+from app.repositories.search_bootstrap_metrics_repository import SearchBootstrapMetricsRepository
 from app.repositories.search_repository import SearchRepository
 from config import settings
 from crawler.adapters.bama.parsers import BamaDetailParser, BamaListingParser
@@ -99,13 +100,23 @@ class SearchBootstrapCrawlService:
 
         matching_count = self._count_matching(search)
         target_reached = matching_count >= self._target_count
-        return SearchBootstrapResult(
+        result = SearchBootstrapResult(
             pages_crawled=pages_crawled,
             ads_found=ads_found,
             ads_new=ads_new,
             matching_count=matching_count,
             target_reached=target_reached,
         )
+        SearchBootstrapMetricsRepository(self._session).record(
+            search_id=self._search_id,
+            job_id=self._job_id,
+            listing_url=listing_url,
+            pages_crawled=result.pages_crawled,
+            ads_found=result.ads_found,
+            ads_new=result.ads_new,
+            matching_count=result.matching_count,
+        )
+        return result
 
     def _count_matching(self, search) -> int:
         return len(
