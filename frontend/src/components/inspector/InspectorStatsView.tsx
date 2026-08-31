@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { inspectorApi, type SearchDiscoveryStat, type StatsOverview } from "../api/inspector";
+import { inspectorApi, type SearchDiscoveryStat, type StatsOverview } from "../../api/inspector";
 
 export default function InspectorStatsView() {
   const [overview, setOverview] = useState<StatsOverview | null>(null);
