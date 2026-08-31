@@ -279,12 +279,16 @@ class SiteMapCrawlService:
             catalog = SiteCatalogBuilder(self._session, self._config)
             sections = catalog.build()
             map_groups = SiteMapProjectionBuilder(self._session, self._config).build()
+            from crawler.application.taxonomy_builder import TaxonomyBuilder
+
+            taxonomy_summary = TaxonomyBuilder(self._session, self._config, job_id=self._job_id).build()
             self._events.emit(
                 job_id=self._job_id,
                 event_type="job_completed",
                 payload={
                     "sections": sections,
                     "map_groups": len(map_groups),
+                    "taxonomy": taxonomy_summary,
                     "pages_crawled": self._pages_crawled,
                 },
             )

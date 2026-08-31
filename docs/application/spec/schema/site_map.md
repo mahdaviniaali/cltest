@@ -52,6 +52,10 @@ Observability stream for inspector live feed.
 
 Post-job aggregate catalog per detected section.
 
+### taxonomy (post-job)
+
+After `site_map_groups` projection, `TaxonomyBuilder` extracts brand/model terms into [`taxonomy.md`](taxonomy.md) tables. See `crawler/application/taxonomy_builder.py`.
+
 ## crawl_jobs extensions
 
 - `job_type`: `site_map`

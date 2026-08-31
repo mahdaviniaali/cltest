@@ -41,6 +41,7 @@ Hybrid incremental crawler (ADR 006) with hexagonal ports:
 8. Persist graph (`site_nodes`, `site_edges`) + events (`level_completed`, `page_fetched`)
 9. Build section catalog (`site_sections`) on completion for incremental crawl routing
 10. Build aggregated site map projection (`site_map_groups`) — hierarchical groups with `page_count` and `weight`; Inspector reads via `GET /api/inspector/site/map` (no per-request aggregation)
+11. Build taxonomy catalog (`taxonomy_terms`, `taxonomy_refs`) via `TaxonomyBuilder` — brands at depth 2, models at depth 3 per vehicle section (`car`, `motorcycle`, `truck`)
 
 ## Incremental logic
 
