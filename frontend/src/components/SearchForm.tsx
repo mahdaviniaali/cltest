@@ -32,6 +32,7 @@ export default function SearchForm({ initial, onSubmit, onCancel, isEdit = false
   const [sections, setSections] = useState<TaxonomySection[]>([]);
   const [brands, setBrands] = useState<TaxonomyTerm[]>([]);
   const [models, setModels] = useState<TaxonomyTerm[]>([]);
+  const [cities, setCities] = useState<string[]>([]);
   const [taxonomyError, setTaxonomyError] = useState("");
 
   useEffect(() => {
@@ -60,6 +61,14 @@ export default function SearchForm({ initial, onSubmit, onCancel, isEdit = false
       .then(setModels)
       .catch(() => setModels([]));
   }, [form.section_key, form.brand_term_id]);
+
+  useEffect(() => {
+    const section = form.section_key || "car";
+    void taxonomyApi
+      .cities(section)
+      .then((rows) => setCities(rows.map((c) => c.label)))
+      .catch(() => setCities([]));
+  }, [form.section_key]);
 
   useEffect(() => {
     if (initial) {
@@ -282,7 +291,17 @@ export default function SearchForm({ initial, onSubmit, onCancel, isEdit = false
           </label>
           <label>
             موقعیت
-            <input value={form.location ?? ""} onChange={(e) => setField("location", e.target.value)} placeholder="تهران" />
+            <input
+              list="city-suggestions"
+              value={form.location ?? ""}
+              onChange={(e) => setField("location", e.target.value)}
+              placeholder="تهران"
+            />
+            <datalist id="city-suggestions">
+              {cities.map((city) => (
+                <option key={city} value={city} />
+              ))}
+            </datalist>
           </label>
         </div>
         <label className="checkbox">

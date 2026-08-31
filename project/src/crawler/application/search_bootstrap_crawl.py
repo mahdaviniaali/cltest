@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.models.search import Search
 from app.repositories.advertisement_repository import AdvertisementRepository
-from app.repositories.search_bootstrap_metrics_repository import SearchBootstrapMetricsRepository
+from app.services.city_taxonomy_sync import CityTaxonomySync
 from app.repositories.search_repository import SearchRepository
 from config import settings
 from crawler.adapters.bama.parsers import BamaDetailParser, BamaListingParser
@@ -116,6 +116,8 @@ class SearchBootstrapCrawlService:
             ads_new=result.ads_new,
             matching_count=result.matching_count,
         )
+        if result.ads_new > 0:
+            CityTaxonomySync(self._session).sync()
         return result
 
     def _count_matching(self, search) -> int:

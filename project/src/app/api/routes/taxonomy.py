@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db
 from app.models.user import User
+from app.services.city_taxonomy_sync import CityTaxonomySync
 from app.repositories.site_section_repository import SiteSectionRepository
 from app.repositories.taxonomy_repository import TaxonomyRepository
 from app.schemas.taxonomy import TaxonomyCityResponse, TaxonomySectionResponse, TaxonomyTermResponse
@@ -106,7 +107,12 @@ def list_cities(
     db: Session = Depends(get_db),
     _user: User = Depends(get_current_user),
 ) -> list[TaxonomyCityResponse]:
+    sync = CityTaxonomySync(db)
     terms = TaxonomyRepository(db).list_terms(section_key=section, term_type="city")
+    if not terms:
+        sync.sync()
+        db.commit()
+        terms = TaxonomyRepository(db).list_terms(section_key=section, term_type="city")
     return [
         TaxonomyCityResponse(id=t.id, label=t.label, section_key=t.section_key)
         for t in terms

@@ -73,3 +73,7 @@ Per-search bootstrap discovery log for admin stats.
 ## Extraction
 
 `TaxonomyBuilder` runs after `SiteMapProjectionBuilder` on completed site-map jobs. See [`site_map.md`](site_map.md).
+
+### Cities
+
+`CityTaxonomySync` builds `term_type=city` from `DISTINCT advertisements.location` (no Bama URL path). Sync runs after bootstrap when new ads are saved, and on first `GET /api/taxonomy/cities` if empty.
